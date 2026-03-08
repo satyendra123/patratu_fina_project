@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.timmy.mapper.DeviceMapper" >
+  <resultMap id="BaseResultMap" type="com.timmy.entity.Device" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="serial_num" property="serialNum" jdbcType="VARCHAR" />
+    <result column="status" property="status" jdbcType="INTEGER" />
+  </resultMap>
+
+  <sql id="Device_Select_List">
+    COALESCE(st.DI_ID, ds.min_id) AS id,
+    ds.SLNO AS serial_num,
+    ISNULL(CASE WHEN ISNUMERIC(st.DI_VALUE) = 1 THEN CONVERT(INT, st.DI_VALUE) ELSE NULL END, 0) AS status
+  </sql>
+
+  <select id="findAllDevice" resultMap="BaseResultMap" >
+    SELECT
+      <include refid="Device_Select_List" />
+    FROM (
+      SELECT SLNO, MIN(DI_ID) AS min_id
+      FROM DEVICEINFO
+      WHERE NULLIF(LTRIM(RTRIM(SLNO)), '') IS NOT NULL
+      GROUP BY SLNO
+    ) ds
+    OUTER APPLY (
+      SELECT TOP 1 DI_ID, DI_VALUE
+      FROM DEVICEINFO s
+      WHERE s.SLNO = ds.SLNO
+        AND s.DI_PARAM = 'JAVA_CLOUD_STATUS'
+      ORDER BY s.DI_ID DESC
+    ) st
+    ORDER BY ds.SLNO
+  </select>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    SELECT TOP 1
+      <include refid="Device_Select_List" />
+    FROM (
+      SELECT SLNO, MIN(DI_ID) AS min_id
+      FROM DEVICEINFO
+      WHERE NULLIF(LTRIM(RTRIM(SLNO)), '') IS NOT NULL
+      GROUP BY SLNO
+    ) ds
+    OUTER APPLY (
+      SELECT TOP 1 DI_ID, DI_VALUE
+      FROM DEVICEINFO s
+      WHERE s.SLNO = ds.SLNO
+        AND s.DI_PARAM = 'JAVA_CLOUD_STATUS'
+      ORDER BY s.DI_ID DESC
+    ) st
+    WHERE COALESCE(st.DI_ID, ds.min_id) = #{id,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectDeviceBySerialNum" resultMap="BaseResultMap" parameterType="java.lang.String">
+    SELECT TOP 1
+      <include refid="Device_Select_List" />
+    FROM (
+      SELECT SLNO, MIN(DI_ID) AS min_id
+      FROM DEVICEINFO
+      WHERE SLNO = #{serialNum,jdbcType=VARCHAR}
+      GROUP BY SLNO
+    ) ds
+    OUTER APPLY (
+      SELECT TOP 1 DI_ID, DI_VALUE
+      FROM DEVICEINFO s
+      WHERE s.SLNO = ds.SLNO
+        AND s.DI_PARAM = 'JAVA_CLOUD_STATUS'
+      ORDER BY s.DI_ID DESC
+    ) st
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    DELETE FROM DEVICEINFO
+    WHERE DI_ID = #{id,jdbcType=INTEGER}
+      AND DI_PARAM = 'JAVA_CLOUD_STATUS'
+  </delete>
+
+  <insert id="insert" parameterType="com.timmy.entity.Device" >
+    IF EXISTS (
+      SELECT 1
+      FROM DEVICEINFO
+      WHERE SLNO = #{serialNum,jdbcType=VARCHAR}
+        AND DI_PARAM = 'JAVA_CLOUD_STATUS'
+    )
+    BEGIN
+      UPDATE DEVICEINFO
+      SET DI_VALUE = CONVERT(VARCHAR(10), #{status,jdbcType=INTEGER}),
+        DI_MANUAL = 1
+      WHERE DI_ID = (
+        SELECT TOP 1 DI_ID
+        FROM DEVICEINFO
+        WHERE SLNO = #{serialNum,jdbcType=VARCHAR}
+          AND DI_PARAM = 'JAVA_CLOUD_STATUS'
+        ORDER BY DI_ID DESC
+      );
+    END
+    ELSE
+    BEGIN
+      INSERT INTO DEVICEINFO (SLNO, DI_PARAM, DI_VALUE, DI_MANUAL)
+      VALUES (
+        #{serialNum,jdbcType=VARCHAR},
+        'JAVA_CLOUD_STATUS',
+        CONVERT(VARCHAR(10), #{status,jdbcType=INTEGER}),
+        1
+      );
+    END
+  </insert>
+
+  <insert id="insertSelective" parameterType="com.timmy.entity.Device" >
+    INSERT INTO DEVICEINFO (SLNO, DI_PARAM, DI_VALUE, DI_MANUAL)
+    VALUES (
+      #{serialNum,jdbcType=VARCHAR},
+      'JAVA_CLOUD_STATUS',
+      CONVERT(VARCHAR(10), ISNULL(#{status,jdbcType=INTEGER}, 0)),
+      1
+    )
+  </insert>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.timmy.entity.Device" >
+    UPDATE DEVICEINFO
+    SET DI_VALUE = CONVERT(VARCHAR(10), ISNULL(#{status,jdbcType=INTEGER}, 0)),
+      DI_MANUAL = 1
+    WHERE DI_ID = #{id,jdbcType=INTEGER}
+      AND DI_PARAM = 'JAVA_CLOUD_STATUS'
+  </update>
+
+  <update id="updateByPrimaryKey" parameterType="com.timmy.entity.Device" >
+    UPDATE DEVICEINFO
+    SET DI_VALUE = CONVERT(VARCHAR(10), ISNULL(#{status,jdbcType=INTEGER}, 0)),
+      DI_MANUAL = 1
+    WHERE DI_ID = #{id,jdbcType=INTEGER}
+      AND DI_PARAM = 'JAVA_CLOUD_STATUS'
+  </update>
+
+  <update id="updateStatusByPrimaryKey" parameterType="com.timmy.entity.Device" >
+    DECLARE @slno VARCHAR(20);
+    SELECT TOP 1 @slno = SLNO
+    FROM DEVICEINFO
+    WHERE DI_ID = #{id,jdbcType=INTEGER};
+
+    IF @slno IS NOT NULL
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM DEVICEINFO
+        WHERE SLNO = @slno
+          AND DI_PARAM = 'JAVA_CLOUD_STATUS'
+      )
+      BEGIN
+        UPDATE DEVICEINFO
+        SET DI_VALUE = CONVERT(VARCHAR(10), #{status,jdbcType=INTEGER}),
+          DI_MANUAL = 1
+        WHERE DI_ID = (
+          SELECT TOP 1 DI_ID
+          FROM DEVICEINFO
+          WHERE SLNO = @slno
+            AND DI_PARAM = 'JAVA_CLOUD_STATUS'
+          ORDER BY DI_ID DESC
+        );
+      END
+      ELSE
+      BEGIN
+        INSERT INTO DEVICEINFO (SLNO, DI_PARAM, DI_VALUE, DI_MANUAL)
+        VALUES (@slno, 'JAVA_CLOUD_STATUS', CONVERT(VARCHAR(10), #{status,jdbcType=INTEGER}), 1);
+      END
+    END
+  </update>
+
+</mapper>

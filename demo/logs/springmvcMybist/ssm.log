@@ -1,0 +1,54 @@
+[INFO] [2021-10-25 15:03:44][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:03:44][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:03:44 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:03:44][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:03:44][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:03:45][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:03:45][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:03:44 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:05:28][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:05:28][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:05:28 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:05:28][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:05:28][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:05:29][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:05:29][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:05:28 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:07:09][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:07:10][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:07:10 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:07:10][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:07:10][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:07:10][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:07:11][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:07:10 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:08:39][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:08:39][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:08:39 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:08:39][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:08:39][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:08:40][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:08:40][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:08:39 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:09:26][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:09:27][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:09:27 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:09:27][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:09:27][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:09:28][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:09:28][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:09:27 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:10:20][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:10:21][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:10:21 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:10:21][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:10:21][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:10:22][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:10:22][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:10:21 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:12:59][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:12:59][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:12:59 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:12:59][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:12:59][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:13:00][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:13:01][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:12:59 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:15:10][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:15:11][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:15:11 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:15:11][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:15:11][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:15:12][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:15:13][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:15:11 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:17:19][org.springframework.beans.factory.xml.XmlBeanDefinitionReader]Loading XML bean definitions from class path resource [spring-mybatis.xml]
+[INFO] [2021-10-25 15:17:20][org.springframework.context.support.GenericApplicationContext]Refreshing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:17:20 CST 2021]; root of context hierarchy
+[INFO] [2021-10-25 15:17:20][org.springframework.beans.factory.config.PropertyPlaceholderConfigurer]Loading properties file from class path resource [jdbc.properties]
+[INFO] [2021-10-25 15:17:20][org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor]JSR-330 'javax.inject.Inject' annotation found and supported for autowiring
+[INFO] [2021-10-25 15:17:20][com.timmy.websocket.WSServer]端口7788
+[INFO] [2021-10-25 15:17:46][org.springframework.context.support.GenericApplicationContext]Closing org.springframework.context.support.GenericApplicationContext@61dc03ce: startup date [Mon Oct 25 15:17:20 CST 2021]; root of context hierarchy

@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.timmy.mapper.RecordsMapper" >
+  <resultMap id="BaseResultMap" type="com.timmy.entity.Records" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="enroll_id" property="enrollId" jdbcType="BIGINT" />
+    <result column="records_time" property="recordsTime" jdbcType="TIMESTAMP" />
+    <result column="mode" property="mode" jdbcType="INTEGER" />
+    <result column="intOut" property="intout" jdbcType="INTEGER" />
+    <result column="event" property="event" jdbcType="INTEGER" />
+    <result column="device_serial_num" property="deviceSerialNum" jdbcType="VARCHAR" />
+    <result column="temperature" property="temperature" jdbcType="DOUBLE"/>
+    <result column="image" property="image" jdbcType="VARCHAR" />
+  </resultMap>
+
+  <sql id="Base_Column_List" >
+    CONVERT(INT, ATT_ID) AS id,
+    CASE WHEN ISNUMERIC(USER_CODE) = 1 THEN CONVERT(BIGINT, USER_CODE) ELSE NULL END AS enroll_id,
+    ATT_DATETIME AS records_time,
+    ISNULL(CASE WHEN ISNUMERIC(COL2) = 1 THEN CONVERT(INT, COL2) ELSE NULL END, 0) AS mode,
+    ISNULL(CASE WHEN ISNUMERIC(INOUT_ID) = 1 THEN CONVERT(INT, INOUT_ID) ELSE NULL END, 0) AS intOut,
+    ISNULL(CASE WHEN ISNUMERIC(COL3) = 1 THEN CONVERT(INT, COL3) ELSE NULL END, 0) AS event,
+    SLNO AS device_serial_num,
+    ISNULL(CASE WHEN ISNUMERIC(COL5) = 1 THEN CONVERT(FLOAT, COL5) ELSE NULL END, 0) AS temperature,
+    COL6 AS image
+  </sql>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select
+    <include refid="Base_Column_List" />
+    from ATTLOG
+    where ATT_ID = #{id,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectAllRecords" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from ATTLOG
+    order by ATT_ID desc
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from ATTLOG
+    where ATT_ID = #{id,jdbcType=INTEGER}
+  </delete>
+
+  <insert id="insert" parameterType="com.timmy.entity.Records" >
+    insert into ATTLOG (
+      SLNO, USER_CODE, ATT_DATE, ATT_DATETIME, INOUT_ID,
+      COL2, COL3, COL4, ISFTP, COL5, COL6, COL7, COL8, COL9, cap_date
+    )
+    values (
+      #{deviceSerialNum,jdbcType=VARCHAR},
+      CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+      ISNULL(
+        CONVERT(
+          DATETIME,
+          CONVERT(
+            DATE,
+            CASE
+              WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+              ELSE NULL
+            END
+          )
+        ),
+        CONVERT(DATETIME, CONVERT(DATE, GETDATE()))
+      ),
+      ISNULL(
+        CASE
+          WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+          ELSE NULL
+        END,
+        GETDATE()
+      ),
+      CONVERT(VARCHAR(10), #{intout,jdbcType=INTEGER}),
+      CONVERT(VARCHAR(10), #{mode,jdbcType=INTEGER}),
+      CONVERT(VARCHAR(10), #{event,jdbcType=INTEGER}),
+      '0',
+      0,
+      CASE
+        WHEN #{temperature,jdbcType=DOUBLE} IS NULL THEN NULL
+        ELSE CONVERT(VARCHAR(20), #{temperature,jdbcType=DOUBLE})
+      END,
+      #{image,jdbcType=VARCHAR},
+      NULL,
+      NULL,
+      NULL,
+      GETDATE()
+    );
+
+    INSERT INTO SRAW (
+      ATT_DATE, EMP_CODE, IN_OUT, CARDNO, AREA_ID, IO_UPDATE,
+      INOUT, downloaded_date, SAPID, BODY_TEMP, IS_MASKED
+    )
+    SELECT
+      ISNULL(
+        CASE
+          WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+          ELSE NULL
+        END,
+        GETDATE()
+      ),
+      CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+      CASE
+        WHEN #{intout,jdbcType=INTEGER} = 1 THEN 'OUT'
+        ELSE 'IN'
+      END,
+      CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+      (SELECT TOP 1 ID FROM NetWork WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{deviceSerialNum,jdbcType=VARCHAR})) ORDER BY ID DESC),
+      0,
+      '0',
+      GETDATE(),
+      0,
+      CASE
+        WHEN #{temperature,jdbcType=DOUBLE} IS NULL THEN CONVERT(MONEY, 0)
+        ELSE CONVERT(MONEY, #{temperature,jdbcType=DOUBLE})
+      END,
+      0
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM SRAW S
+      WHERE S.EMP_CODE = CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT})
+        AND S.ATT_DATE = ISNULL(
+          CASE
+            WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+            ELSE NULL
+          END,
+          GETDATE()
+        )
+        AND S.IN_OUT = CASE
+          WHEN #{intout,jdbcType=INTEGER} = 1 THEN 'OUT'
+          ELSE 'IN'
+        END
+        AND (
+          S.AREA_ID = (SELECT TOP 1 ID FROM NetWork WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{deviceSerialNum,jdbcType=VARCHAR})) ORDER BY ID DESC)
+          OR (
+            S.AREA_ID IS NULL
+            AND (SELECT TOP 1 ID FROM NetWork WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{deviceSerialNum,jdbcType=VARCHAR})) ORDER BY ID DESC) IS NULL
+          )
+        )
+    )
+  </insert>
+
+  <insert id="insertSelective" parameterType="com.timmy.entity.Records" >
+    insert into ATTLOG (
+      SLNO, USER_CODE, ATT_DATE, ATT_DATETIME, INOUT_ID,
+      COL2, COL3, COL4, ISFTP, COL5, COL6, COL7, COL8, COL9, cap_date
+    )
+    values (
+      #{deviceSerialNum,jdbcType=VARCHAR},
+      CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+      ISNULL(
+        CONVERT(
+          DATETIME,
+          CONVERT(
+            DATE,
+            CASE
+              WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+              ELSE NULL
+            END
+          )
+        ),
+        CONVERT(DATETIME, CONVERT(DATE, GETDATE()))
+      ),
+      ISNULL(
+        CASE
+          WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+          ELSE NULL
+        END,
+        GETDATE()
+      ),
+      CONVERT(VARCHAR(10), #{intout,jdbcType=INTEGER}),
+      CONVERT(VARCHAR(10), #{mode,jdbcType=INTEGER}),
+      CONVERT(VARCHAR(10), #{event,jdbcType=INTEGER}),
+      '0',
+      0,
+      CASE
+        WHEN #{temperature,jdbcType=DOUBLE} IS NULL THEN NULL
+        ELSE CONVERT(VARCHAR(20), #{temperature,jdbcType=DOUBLE})
+      END,
+      #{image,jdbcType=VARCHAR},
+      NULL,
+      NULL,
+      NULL,
+      GETDATE()
+    );
+
+    INSERT INTO SRAW (
+      ATT_DATE, EMP_CODE, IN_OUT, CARDNO, AREA_ID, IO_UPDATE,
+      INOUT, downloaded_date, SAPID, BODY_TEMP, IS_MASKED
+    )
+    SELECT
+      ISNULL(
+        CASE
+          WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+          ELSE NULL
+        END,
+        GETDATE()
+      ),
+      CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+      CASE
+        WHEN #{intout,jdbcType=INTEGER} = 1 THEN 'OUT'
+        ELSE 'IN'
+      END,
+      CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+      (SELECT TOP 1 ID FROM NetWork WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{deviceSerialNum,jdbcType=VARCHAR})) ORDER BY ID DESC),
+      0,
+      '0',
+      GETDATE(),
+      0,
+      CASE
+        WHEN #{temperature,jdbcType=DOUBLE} IS NULL THEN CONVERT(MONEY, 0)
+        ELSE CONVERT(MONEY, #{temperature,jdbcType=DOUBLE})
+      END,
+      0
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM SRAW S
+      WHERE S.EMP_CODE = CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT})
+        AND S.ATT_DATE = ISNULL(
+          CASE
+            WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+            ELSE NULL
+          END,
+          GETDATE()
+        )
+        AND S.IN_OUT = CASE
+          WHEN #{intout,jdbcType=INTEGER} = 1 THEN 'OUT'
+          ELSE 'IN'
+        END
+        AND (
+          S.AREA_ID = (SELECT TOP 1 ID FROM NetWork WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{deviceSerialNum,jdbcType=VARCHAR})) ORDER BY ID DESC)
+          OR (
+            S.AREA_ID IS NULL
+            AND (SELECT TOP 1 ID FROM NetWork WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{deviceSerialNum,jdbcType=VARCHAR})) ORDER BY ID DESC) IS NULL
+          )
+        )
+    )
+  </insert>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.timmy.entity.Records" >
+    update ATTLOG
+    <set >
+      <if test="enrollId != null" >
+        USER_CODE = CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+      </if>
+      <if test="recordsTime != null" >
+        ATT_DATETIME = CASE
+          WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+          ELSE ATT_DATETIME
+        END,
+        ATT_DATE = CASE
+          WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, CONVERT(DATE, CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)))
+          ELSE ATT_DATE
+        END,
+      </if>
+      <if test="mode != null" >
+        COL2 = CONVERT(VARCHAR(10), #{mode,jdbcType=INTEGER}),
+      </if>
+      <if test="intout != null" >
+        INOUT_ID = CONVERT(VARCHAR(10), #{intout,jdbcType=INTEGER}),
+      </if>
+      <if test="event != null" >
+        COL3 = CONVERT(VARCHAR(10), #{event,jdbcType=INTEGER}),
+      </if>
+      <if test="deviceSerialNum != null" >
+        SLNO = #{deviceSerialNum,jdbcType=VARCHAR},
+      </if>
+      <if test="temperature != null" >
+        COL5 = CONVERT(VARCHAR(20), #{temperature,jdbcType=DOUBLE}),
+      </if>
+      <if test="image != null" >
+        COL6 = #{image,jdbcType=VARCHAR},
+      </if>
+      cap_date = GETDATE()
+    </set>
+    where ATT_ID = #{id,jdbcType=INTEGER}
+  </update>
+
+  <update id="updateByPrimaryKey" parameterType="com.timmy.entity.Records" >
+    update ATTLOG
+    set USER_CODE = CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+      ATT_DATETIME = CASE
+        WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)
+        ELSE ATT_DATETIME
+      END,
+      ATT_DATE = CASE
+        WHEN ISDATE(#{recordsTime,jdbcType=VARCHAR}) = 1 THEN CONVERT(DATETIME, CONVERT(DATE, CONVERT(DATETIME, #{recordsTime,jdbcType=VARCHAR}, 120)))
+        ELSE ATT_DATE
+      END,
+      COL2 = CONVERT(VARCHAR(10), #{mode,jdbcType=INTEGER}),
+      INOUT_ID = CONVERT(VARCHAR(10), #{intout,jdbcType=INTEGER}),
+      COL3 = CONVERT(VARCHAR(10), #{event,jdbcType=INTEGER}),
+      SLNO = #{deviceSerialNum,jdbcType=VARCHAR},
+      COL5 = CONVERT(VARCHAR(20), #{temperature,jdbcType=DOUBLE}),
+      COL6 = #{image,jdbcType=VARCHAR},
+      cap_date = GETDATE()
+    where ATT_ID = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>
