@@ -7,6 +7,8 @@ public class Device {
 
     private Integer status;
 
+    private String inOutMode;
+
     public Integer getId() {
         return id;
     }
@@ -31,10 +33,18 @@ public class Device {
         this.status = status;
     }
 
+    public String getInOutMode() {
+        return inOutMode;
+    }
+
+    public void setInOutMode(String inOutMode) {
+        this.inOutMode = inOutMode == null ? null : inOutMode.trim();
+    }
+
 	@Override
 	public String toString() {
 		return "Device [id=" + id + ", serialNum=" + serialNum + ", status="
-				+ status + "]";
+				+ status + ", inOutMode=" + inOutMode + "]";
 	}
     
     

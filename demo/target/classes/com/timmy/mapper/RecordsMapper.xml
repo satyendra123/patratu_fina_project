@@ -8,35 +8,55 @@
     <result column="mode" property="mode" jdbcType="INTEGER" />
     <result column="intOut" property="intout" jdbcType="INTEGER" />
     <result column="event" property="event" jdbcType="INTEGER" />
+    <result column="user_name" property="userName" jdbcType="VARCHAR" />
     <result column="device_serial_num" property="deviceSerialNum" jdbcType="VARCHAR" />
     <result column="temperature" property="temperature" jdbcType="DOUBLE"/>
     <result column="image" property="image" jdbcType="VARCHAR" />
   </resultMap>
 
   <sql id="Base_Column_List" >
-    CONVERT(INT, ATT_ID) AS id,
-    CASE WHEN ISNUMERIC(USER_CODE) = 1 THEN CONVERT(BIGINT, USER_CODE) ELSE NULL END AS enroll_id,
-    ATT_DATETIME AS records_time,
-    ISNULL(CASE WHEN ISNUMERIC(COL2) = 1 THEN CONVERT(INT, COL2) ELSE NULL END, 0) AS mode,
-    ISNULL(CASE WHEN ISNUMERIC(INOUT_ID) = 1 THEN CONVERT(INT, INOUT_ID) ELSE NULL END, 0) AS intOut,
-    ISNULL(CASE WHEN ISNUMERIC(COL3) = 1 THEN CONVERT(INT, COL3) ELSE NULL END, 0) AS event,
-    SLNO AS device_serial_num,
-    ISNULL(CASE WHEN ISNUMERIC(COL5) = 1 THEN CONVERT(FLOAT, COL5) ELSE NULL END, 0) AS temperature,
-    COL6 AS image
+    CONVERT(INT, A.ATT_ID) AS id,
+    CASE WHEN ISNUMERIC(A.USER_CODE) = 1 THEN CONVERT(BIGINT, A.USER_CODE) ELSE NULL END AS enroll_id,
+    A.ATT_DATETIME AS records_time,
+    ISNULL(CASE WHEN ISNUMERIC(A.COL2) = 1 THEN CONVERT(INT, A.COL2) ELSE NULL END, 0) AS mode,
+    ISNULL(CASE WHEN ISNUMERIC(A.INOUT_ID) = 1 THEN CONVERT(INT, A.INOUT_ID) ELSE NULL END, 0) AS intOut,
+    ISNULL(CASE WHEN ISNUMERIC(A.COL3) = 1 THEN CONVERT(INT, A.COL3) ELSE NULL END, 0) AS event,
+    ISNULL(U.NAME, '') AS user_name,
+    A.SLNO AS device_serial_num,
+    ISNULL(CASE WHEN ISNUMERIC(A.COL5) = 1 THEN CONVERT(FLOAT, A.COL5) ELSE NULL END, 0) AS temperature,
+    A.COL6 AS image
+  </sql>
+
+  <sql id="User_Name_Join">
+    FROM ATTLOG A
+    LEFT JOIN (
+      SELECT ID, NAME, ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn
+      FROM BIO_USERMAST
+      WHERE ISNULL(ISDELETED, 0) = 0
+    ) U ON U.rn = 1 AND LTRIM(RTRIM(U.ID)) = LTRIM(RTRIM(A.USER_CODE))
   </sql>
 
   <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
     select
     <include refid="Base_Column_List" />
-    from ATTLOG
-    where ATT_ID = #{id,jdbcType=INTEGER}
+    <include refid="User_Name_Join" />
+    where A.ATT_ID = #{id,jdbcType=INTEGER}
   </select>
 
   <select id="selectAllRecords" resultMap="BaseResultMap">
     select
     <include refid="Base_Column_List" />
-    from ATTLOG
-    order by ATT_ID desc
+    <include refid="User_Name_Join" />
+    order by A.ATT_ID desc
+  </select>
+
+  <select id="selectRecordsByKeyword" resultMap="BaseResultMap" parameterType="java.lang.String">
+    select
+    <include refid="Base_Column_List" />
+    <include refid="User_Name_Join" />
+    where CHARINDEX(#{keyword}, ISNULL(A.USER_CODE, '')) > 0
+      OR CHARINDEX(#{keyword}, ISNULL(U.NAME, '')) > 0
+    order by A.ATT_ID desc
   </select>
 
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >

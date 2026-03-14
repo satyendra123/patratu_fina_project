@@ -3,15 +3,22 @@ package com.timmy.serviceImpl;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+
+import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.timmy.entity.DeviceStatus;
 import com.timmy.entity.EnrollInfo;
 import com.timmy.entity.MachineCommand;
 import com.timmy.entity.Person;
-import com.timmy.entity.SendMessage;
 import com.timmy.entity.UserInfo;
 import com.timmy.mapper.MachineCommandMapper;
 import com.timmy.mapper.PersonMapper;
@@ -22,7 +29,10 @@ import com.timmy.websocket.WebSocketPool;
 @Service
 public class PersonServiceImpl implements PersonService {
 	// Keep bulk user sync disabled; single-user sync is allowed explicitly via controller flows.
-	private static final boolean BULK_BACKUP_SYNC_ENABLED = false;
+	private static final boolean BULK_BACKUP_SYNC_ENABLED = true;
+	// Avoid creating manager users on devices during DB-driven sync.
+	private static final boolean ALLOW_DEVICE_ADMIN_SYNC = false;
+	private static final int BULK_INSERT_BATCH_SIZE = 500;
 	
 	@Autowired 
 	PersonMapper personMapper;
@@ -32,6 +42,9 @@ public class PersonServiceImpl implements PersonService {
 	
 	@Autowired
 	MachineCommandMapper machineCommandMapper;
+
+	@Autowired
+	DataSource dataSource;
 	
 	@Override
 	public int updateByPrimaryKeySelective(Person record) {
@@ -95,6 +108,7 @@ public class PersonServiceImpl implements PersonService {
       public void setUserToDevice(Long enrollId,String name,int backupnum,int admin,String records,String deviceSn) {
     	
     	  if(backupnum!=-1) {
+    		  int safeAdmin = sanitizeAdminValue(enrollId, Integer.valueOf(admin));
     		  
     	 
     	  
@@ -110,11 +124,11 @@ public class PersonServiceImpl implements PersonService {
 			machineCommand.setGmtModified(new Date());
 	
     	  machineCommand.setContent("{\"cmd\":\"setuserinfo\",\"enrollid\":"+enrollId+ ",\"name\":\"" + name +"\",\"backupnum\":" + backupnum
-					+ ",\"admin\":" + admin + ",\"record\":\"" + records + "\"}");; 
+					+ ",\"admin\":" + safeAdmin + ",\"record\":\"" + records + "\"}");; 
   		
   		if (backupnum==11||backupnum==10) {
   			machineCommand.setContent("{\"cmd\":\"setuserinfo\",\"enrollid\":"+enrollId+ ",\"name\":\"" + name +"\",\"backupnum\":" + backupnum
-						+ ",\"admin\":" + admin + ",\"record\":" + records + "}"); 
+						+ ",\"admin\":" + safeAdmin + ",\"record\":" + records + "}"); 
 			}
   		
     	 		
@@ -149,17 +163,18 @@ public class PersonServiceImpl implements PersonService {
 	  		return;
 	  	}
     	  List<UserInfo>userInfos=enrollInfoService.usersToSendDevice();
-		    
+
 	    	System.out.println(userInfos.size());
+	    	List<MachineCommand> batch = new ArrayList<MachineCommand>(BULK_INSERT_BATCH_SIZE);
 	    	for (int i = 0; i < userInfos.size(); i++) {
-	    		Long enrollId=userInfos.get(i).getEnrollId();
-				String name=userInfos.get(i).getName();
-				int backupnum=userInfos.get(i).getBackupnum();
-				int admin=userInfos.get(i).getAdmin();
-				String record=userInfos.get(i).getRecord();						
-				SendMessage message=new SendMessage();								
-	    		MachineCommand machineCommand=new MachineCommand();
-	    		
+	    		UserInfo userInfo = userInfos.get(i);
+	    		if (userInfo == null || userInfo.getEnrollId() == null) {
+	    			continue;
+	    		}
+	    		int admin = sanitizeAdminValue(userInfo.getEnrollId(), Integer.valueOf(userInfo.getAdmin()));
+	    		String payload = buildSetUserInfoPayload(userInfo.getEnrollId(), userInfo.getName(),
+	    				userInfo.getBackupnum(), admin, userInfo.getRecord());
+	    		MachineCommand machineCommand = new MachineCommand();
 	    		machineCommand.setName("setuserinfo");
 	    		machineCommand.setStatus(0);
 	    		machineCommand.setSendStatus(0);
@@ -167,21 +182,74 @@ public class PersonServiceImpl implements PersonService {
 	    		machineCommand.setSerial(deviceSn);
 	    		machineCommand.setGmtCrate(new Date());
 	    		machineCommand.setGmtModified(new Date());
-	    		
-		  
-				machineCommand.setContent("{\"cmd\":\"setuserinfo\",\"enrollid\":"+enrollId+ ",\"name\":\"" + name +"\",\"backupnum\":" + backupnum
-						+ ",\"admin\":" + admin + ",\"record\":\"" + record + "\"}"); 
-	    	
-	    		if (backupnum==11||backupnum==10) {
-	    			machineCommand.setContent("{\"cmd\":\"setuserinfo\",\"enrollid\":"+enrollId+ ",\"name\":\"" + name +"\",\"backupnum\":" + backupnum
-							+ ",\"admin\":" + admin + ",\"record\":" + record + "}"); 
-				}
-	    		
-	    		machineCommandMapper.insert(machineCommand);
-	    		
-	    		
-	    	 }	
-			
+	    		machineCommand.setContent(payload);
+	    		batch.add(machineCommand);
+	    		if (batch.size() >= BULK_INSERT_BATCH_SIZE) {
+	    			insertMachineCommandsBatch(batch);
+	    			batch.clear();
+	    		}
+	    	}
+	    	if (!batch.isEmpty()) {
+	    		insertMachineCommandsBatch(batch);
+	    	}
+	}
+
+	private String buildSetUserInfoPayload(Long enrollId, String name, int backupnum, int admin, String record) {
+		String safeName = name == null ? "" : name;
+		String safeRecord = record == null ? "" : record;
+		int safeAdmin = sanitizeAdminValue(enrollId, Integer.valueOf(admin));
+		if (backupnum == 11 || backupnum == 10) {
+			return "{\"cmd\":\"setuserinfo\",\"enrollid\":" + enrollId + ",\"name\":\"" + safeName + "\",\"backupnum\":"
+					+ backupnum + ",\"admin\":" + safeAdmin + ",\"record\":" + safeRecord + "}";
+		}
+		return "{\"cmd\":\"setuserinfo\",\"enrollid\":" + enrollId + ",\"name\":\"" + safeName + "\",\"backupnum\":"
+				+ backupnum + ",\"admin\":" + safeAdmin + ",\"record\":\"" + safeRecord + "\"}";
+	}
+
+	private int sanitizeAdminValue(Long enrollId, Integer admin) {
+		if (!ALLOW_DEVICE_ADMIN_SYNC) {
+			return 0;
+		}
+		if (admin == null) {
+			return 0;
+		}
+		return Math.max(0, admin.intValue());
+	}
+
+	private int insertMachineCommandsBatch(final List<MachineCommand> commands) {
+		if (commands == null || commands.isEmpty()) {
+			return 0;
+		}
+		final String sql = "insert into DEVICECMD (SLNO, DC_CMD, DC_DATE, DC_EXECDATE, DC_RES, DC_RESDATE, CMD_DESC, REF_ID, src_sno, DC_cmd_date, IS_DEL_EXECUTED) "
+				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		int[] rows = jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				MachineCommand command = commands.get(i);
+				Timestamp createdAt = new Timestamp(
+						command.getGmtCrate() == null ? System.currentTimeMillis() : command.getGmtCrate().getTime());
+				Timestamp modifiedAt = new Timestamp(
+						command.getGmtModified() == null ? createdAt.getTime() : command.getGmtModified().getTime());
+				ps.setString(1, command.getSerial());
+				ps.setString(2, command.getContent());
+				ps.setTimestamp(3, createdAt);
+				ps.setNull(4, Types.TIMESTAMP);
+				ps.setString(5, "0");
+				ps.setNull(6, Types.TIMESTAMP);
+				ps.setString(7, "JAVA:" + (command.getName() == null ? "command" : command.getName()));
+				ps.setInt(8, command.getErrCount() == null ? 0 : command.getErrCount().intValue());
+				ps.setNull(9, Types.VARCHAR);
+				ps.setTimestamp(10, modifiedAt);
+				ps.setInt(11, 0);
+			}
+
+			@Override
+			public int getBatchSize() {
+				return commands.size();
+			}
+		});
+		return rows == null ? 0 : rows.length;
 	}
       
       

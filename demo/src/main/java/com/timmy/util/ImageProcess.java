@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 
@@ -20,8 +21,6 @@ import com.timmy.entity.Temp;
 import com.timmy.mapper.EnrollInfoMapper;
 import com.timmy.mapper.MachineCommandMapper;
 
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
 public class  ImageProcess {
 
 	@Autowired
@@ -44,8 +43,6 @@ public class  ImageProcess {
 	        if (base64String == null) {
 	            return false;
 	        } else {
-	            BASE64Decoder decoder = new BASE64Decoder();
-
 	            try {
 	                if (!file2.exists()) {
 	                	File parent = file2.getParentFile();
@@ -55,13 +52,15 @@ public class  ImageProcess {
 	                    file2.createNewFile();
 	                }
 
-	                byte[] b = decoder.decodeBuffer(base64String);
-
-	                for(int i = 0; i < b.length; ++i) {
-	                    if (b[i] < 0) {
-	                        b[i] = (byte)(b[i] + 256);
-	                    }
+	                String normalized = base64String.trim();
+	                if (normalized.startsWith("data:")) {
+	                	int commaIndex = normalized.indexOf(',');
+	                	if (commaIndex >= 0 && commaIndex + 1 < normalized.length()) {
+	                		normalized = normalized.substring(commaIndex + 1);
+	                	}
 	                }
+	                normalized = normalized.replaceAll("\\s+", "");
+	                byte[] b = Base64.getDecoder().decode(normalized);
 
 	                OutputStream out = new FileOutputStream(file2);
 	                out.write(b);
@@ -76,10 +75,9 @@ public class  ImageProcess {
 	    }
 	 
 	  public static String multipartFileToBASE64(MultipartFile mFile) throws Exception{
-	        BASE64Encoder bEncoder=new BASE64Encoder();
 	        String[] suffixArra=mFile.getOriginalFilename().split("\\.");
 	        String preffix="data:image/jpg;base64,".replace("jpg", suffixArra[suffixArra.length - 1]);
-	        String base64EncoderImg=preffix + bEncoder.encode(mFile.getBytes()).replaceAll("[\\s*\t\n\r]", "");
+	        String base64EncoderImg=preffix + Base64.getEncoder().encodeToString(mFile.getBytes());
 	        return base64EncoderImg;
 	    }
 	  
@@ -100,11 +98,13 @@ public class  ImageProcess {
 	    e.printStackTrace();
 	   }
 	   // 加密
-	//   BASE64Encoder encoder = new BASE64Encoder();
 		/*
 		 * String s=encoder.encode(data); String s2=s.replaceAll("[+]", "%2B");
 		 */
-	   return org.apache.commons.codec.binary.Base64.encodeBase64String(data);
+	   if (data == null) {
+		   return "";
+	   }
+	   return Base64.getEncoder().encodeToString(data);
 	  }
 	  
 	  

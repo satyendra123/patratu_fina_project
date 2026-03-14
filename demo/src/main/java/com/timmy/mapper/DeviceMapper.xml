@@ -5,12 +5,17 @@
     <id column="id" property="id" jdbcType="INTEGER" />
     <result column="serial_num" property="serialNum" jdbcType="VARCHAR" />
     <result column="status" property="status" jdbcType="INTEGER" />
+    <result column="inout_mode" property="inOutMode" jdbcType="VARCHAR" />
   </resultMap>
 
   <sql id="Device_Select_List">
     COALESCE(st.DI_ID, ds.min_id) AS id,
     ds.SLNO AS serial_num,
-    ISNULL(CASE WHEN ISNUMERIC(st.DI_VALUE) = 1 THEN CONVERT(INT, st.DI_VALUE) ELSE NULL END, 0) AS status
+    ISNULL(CASE WHEN ISNUMERIC(st.DI_VALUE) = 1 THEN CONVERT(INT, st.DI_VALUE) ELSE NULL END, 0) AS status,
+    CASE
+      WHEN NULLIF(LTRIM(RTRIM(nw.gate_value)), '') IS NULL THEN 'AUTO'
+      ELSE UPPER(LTRIM(RTRIM(nw.gate_value)))
+    END AS inout_mode
   </sql>
 
   <select id="findAllDevice" resultMap="BaseResultMap" >
@@ -29,6 +34,12 @@
         AND s.DI_PARAM = 'JAVA_CLOUD_STATUS'
       ORDER BY s.DI_ID DESC
     ) st
+    OUTER APPLY (
+      SELECT TOP 1 GATE AS gate_value
+      FROM NetWork n
+      WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(ds.SLNO))
+      ORDER BY n.ID DESC
+    ) nw
     ORDER BY ds.SLNO
   </select>
 
@@ -48,6 +59,12 @@
         AND s.DI_PARAM = 'JAVA_CLOUD_STATUS'
       ORDER BY s.DI_ID DESC
     ) st
+    OUTER APPLY (
+      SELECT TOP 1 GATE AS gate_value
+      FROM NetWork n
+      WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(ds.SLNO))
+      ORDER BY n.ID DESC
+    ) nw
     WHERE COALESCE(st.DI_ID, ds.min_id) = #{id,jdbcType=INTEGER}
   </select>
 
@@ -67,6 +84,12 @@
         AND s.DI_PARAM = 'JAVA_CLOUD_STATUS'
       ORDER BY s.DI_ID DESC
     ) st
+    OUTER APPLY (
+      SELECT TOP 1 GATE AS gate_value
+      FROM NetWork n
+      WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(ds.SLNO))
+      ORDER BY n.ID DESC
+    ) nw
   </select>
 
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >

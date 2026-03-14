@@ -6,5 +6,8 @@ public interface NetWorkMapper {
     Integer selectNetworkIdBySlno(@Param("slno") String slno);
 
     int insertNetworkPlaceholder(@Param("slno") String slno);
-}
 
+    String selectGateBySlno(@Param("slno") String slno);
+
+    int upsertGateBySlno(@Param("slno") String slno, @Param("gate") String gate);
+}

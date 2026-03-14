@@ -24,5 +24,49 @@
     )
   </insert>
 
-</mapper>
+  <select id="selectGateBySlno" resultType="java.lang.String">
+    SELECT TOP 1 LTRIM(RTRIM(GATE))
+    FROM NetWork
+    WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{slno,jdbcType=VARCHAR}))
+    ORDER BY ID DESC
+  </select>
 
+  <update id="upsertGateBySlno">
+    DECLARE @normalizedSlno VARCHAR(255) = LTRIM(RTRIM(#{slno,jdbcType=VARCHAR}));
+    DECLARE @normalizedGate VARCHAR(10) = NULLIF(UPPER(LTRIM(RTRIM(#{gate,jdbcType=VARCHAR}))), '');
+
+    IF @normalizedSlno IS NULL
+    BEGIN
+      RETURN;
+    END
+
+    IF EXISTS (
+      SELECT 1
+      FROM NetWork
+      WHERE LTRIM(RTRIM(SLNO)) = @normalizedSlno
+    )
+    BEGIN
+      UPDATE NetWork
+      SET GATE = @normalizedGate
+      WHERE ID = (
+        SELECT TOP 1 ID
+        FROM NetWork
+        WHERE LTRIM(RTRIM(SLNO)) = @normalizedSlno
+        ORDER BY ID DESC
+      );
+    END
+    ELSE
+    BEGIN
+      INSERT INTO NetWork (SLNO, GATE, ONLINE, ISDELETED, DeviceName, Status_Upd_on)
+      VALUES (
+        @normalizedSlno,
+        @normalizedGate,
+        CONVERT(BIT, 1),
+        CONVERT(BIT, 0),
+        LEFT(@normalizedSlno, 20),
+        GETDATE()
+      );
+    END
+  </update>
+
+</mapper>

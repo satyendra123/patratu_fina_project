@@ -103,11 +103,11 @@
 
     </bean> 
 
-    <bean id="webSocket" class="com.timmy.websocket.WSServer" >
+	<bean id="webSocket" class="com.timmy.websocket.WSServer" >
 		<constructor-arg index="0" type="int" value="7788"></constructor-arg>
 	</bean>
 	<bean id="sendOrderJob" class="com.timmy.job.SendOrderJob" />
-	<bean id="databaseUserSyncScheduler" class="com.timmy.job.DatabaseUserSyncScheduler" />
+	<bean id="deviceDeltaQueueSyncScheduler" class="com.timmy.job.DeviceDeltaQueueSyncScheduler" />
 	<bean id="webSocketPool" class="com.timmy.websocket.WebSocketPool" >
 		
 	</bean>

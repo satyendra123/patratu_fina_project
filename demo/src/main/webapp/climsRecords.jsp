@@ -28,6 +28,12 @@
                 <span id="source_info" style="margin-left: 15px; color: #337ab7;"></span>
             </div>
         </div>
+        <div class="row" style="margin-bottom: 10px;">
+            <div class="col-md-12">
+                <input type="text" class="form-control" id="climsSearchInputTop"
+                    placeholder="Search by User ID / Name" style="width: 320px; display:inline-block;">
+            </div>
+        </div>
         <div class="row">
             <div class="col-md-12">
                 <table class="table table-hover table-striped" id="clims_table">
@@ -38,6 +44,7 @@
                             <th>DownloadDate</th>
                             <th>ProjectId</th>
                             <th>UserId</th>
+                            <th>Name</th>
                             <th>LogDate</th>
                             <th>Direction</th>
                             <th>DeviceSerial</th>
@@ -58,21 +65,101 @@
     <script type="text/javascript">
         var totalRecord, currentPage;
         var currentDeviceSn = "${deviceSn}";
+        var currentClimsSearchKeyword = "";
+        var climsSearchDebounceTimer = null;
+        var climsAllRecords = [];
+        var climsFilteredRecords = [];
+        var climsPageSize = 8;
+        var climsSourceMeta = {
+            source: "",
+            deviceSn: "",
+            mappingMissing: false
+        };
 
-        $(function() {
-            to_page(1);
-        });
+        function normalizeClimsSearchText(value) {
+            return $.trim((value || ""));
+        }
 
-        $("#refresh_btn").click(function() {
+        function queueClimsSearchReload() {
+            if (climsSearchDebounceTimer) {
+                clearTimeout(climsSearchDebounceTimer);
+            }
+            climsSearchDebounceTimer = setTimeout(function() {
+                applyClimsFilterAndRender(true);
+            }, 220);
+        }
+
+        function buildNavigatePageNums(pageNum, pages) {
+            var nums = [];
+            if (pages <= 0) {
+                return nums;
+            }
+            var navSize = 5;
+            var start = pageNum - Math.floor(navSize / 2);
+            var end = start + navSize - 1;
+            if (start < 1) {
+                start = 1;
+                end = Math.min(pages, navSize);
+            }
+            if (end > pages) {
+                end = pages;
+                start = Math.max(1, end - navSize + 1);
+            }
+            for (var i = start; i <= end; i++) {
+                nums.push(i);
+            }
+            return nums;
+        }
+
+        function buildClimsPageResult(pn) {
+            var total = climsFilteredRecords.length;
+            var pages = total === 0 ? 1 : Math.ceil(total / climsPageSize);
+            var safePageNum = pn;
+            if (!safePageNum || safePageNum < 1) {
+                safePageNum = 1;
+            }
+            if (safePageNum > pages) {
+                safePageNum = pages;
+            }
+            var startIndex = (safePageNum - 1) * climsPageSize;
+            var endIndex = Math.min(startIndex + climsPageSize, total);
+            var list = climsFilteredRecords.slice(startIndex, endIndex);
+            var startRow = total === 0 ? 0 : startIndex + 1;
+            return {
+                extend: {
+                    pageInfo: {
+                        list: list,
+                        pageNum: safePageNum,
+                        pages: pages,
+                        total: total,
+                        startRow: startRow,
+                        hasPreviousPage: safePageNum > 1,
+                        hasNextPage: safePageNum < pages,
+                        navigatepageNums: buildNavigatePageNums(safePageNum, pages)
+                    }
+                }
+            };
+        }
+
+        function applyClimsFilterAndRender(resetToFirstPage) {
+            var keyword = normalizeClimsSearchText(currentClimsSearchKeyword).toLowerCase();
+            if (keyword === "") {
+                climsFilteredRecords = climsAllRecords.slice(0);
+            } else {
+                climsFilteredRecords = $.grep(climsAllRecords, function(item) {
+                    var userIdText = normalizeClimsSearchText(item ? item.userId : "").toLowerCase();
+                    var userNameText = normalizeClimsSearchText(item ? item.userName : "").toLowerCase();
+                    return userIdText.indexOf(keyword) !== -1 || userNameText.indexOf(keyword) !== -1;
+                });
+            }
+            if (resetToFirstPage) {
+                currentPage = 1;
+            }
             to_page(currentPage || 1);
-        });
+        }
 
-        $("#back_log_btn").click(function() {
-            window.location.href = "${APP_PATH}/logRecords.jsp?deviceSn=" + currentDeviceSn;
-        });
-
-        function to_page(pn) {
-            var payload = { pn: pn };
+        function loadClimsRecordsData() {
+            var payload = { fetchAll: true };
             if (currentDeviceSn && currentDeviceSn.length > 0) {
                 payload.deviceSn = currentDeviceSn;
             }
@@ -81,18 +168,56 @@
                 data: payload,
                 type: "GET",
                 success: function(result) {
-                    build_table(result);
-                    build_page_info(result);
-                    build_page_nav(result);
-                    build_source_info(result);
+                    var ext = result && result.extend ? result.extend : {};
+                    var pageInfo = ext.pageInfo ? ext.pageInfo : null;
+                    climsAllRecords = pageInfo && pageInfo.list ? pageInfo.list : [];
+                    climsSourceMeta = {
+                        source: ext.source ? ext.source : "",
+                        deviceSn: ext.deviceSn ? ext.deviceSn : "",
+                        mappingMissing: ext.mappingMissing ? true : false
+                    };
+                    applyClimsFilterAndRender(true);
+                },
+                error: function() {
+                    climsAllRecords = [];
+                    climsSourceMeta = { source: "", deviceSn: currentDeviceSn, mappingMissing: false };
+                    applyClimsFilterAndRender(true);
                 }
             });
         }
 
-        function build_source_info(result) {
-            var source = result.extend && result.extend.source ? result.extend.source : "";
-            var deviceSn = result.extend && result.extend.deviceSn ? result.extend.deviceSn : "";
-            var mappingMissing = result.extend && result.extend.mappingMissing ? true : false;
+        $(function() {
+            loadClimsRecordsData();
+            $("#climsSearchInputTop").on("input", function() {
+                currentClimsSearchKeyword = normalizeClimsSearchText($(this).val());
+                queueClimsSearchReload();
+            });
+        });
+
+        $("#refresh_btn").click(function() {
+            loadClimsRecordsData();
+        });
+
+        $("#back_log_btn").click(function() {
+            window.location.href = "${APP_PATH}/logRecords.jsp?deviceSn=" + currentDeviceSn;
+        });
+
+        function to_page(pn) {
+            if (climsSearchDebounceTimer) {
+                clearTimeout(climsSearchDebounceTimer);
+                climsSearchDebounceTimer = null;
+            }
+            var result = buildClimsPageResult(pn);
+            build_table(result);
+            build_page_info(result);
+            build_page_nav(result);
+            build_source_info();
+        }
+
+        function build_source_info() {
+            var source = climsSourceMeta.source ? climsSourceMeta.source : "";
+            var deviceSn = climsSourceMeta.deviceSn ? climsSourceMeta.deviceSn : "";
+            var mappingMissing = climsSourceMeta.mappingMissing ? true : false;
             var text = source ? ("Data Source: " + source) : "Data Source: N/A";
             if (deviceSn) {
                 text += " | Device: " + deviceSn;
@@ -114,6 +239,7 @@
                     .append($("<td></td>").append(item.downloadDate))
                     .append($("<td></td>").append(item.projectId))
                     .append($("<td></td>").append(item.userId))
+                    .append($("<td></td>").append(item.userName ? item.userName : "-"))
                     .append($("<td></td>").append(item.logDate))
                     .append($("<td></td>").append(item.direction))
                     .append($("<td></td>").append(item.deviceSerialNum ? item.deviceSerialNum : "-"))
@@ -136,43 +262,53 @@
         function build_page_nav(result) {
             $("#page_nav_area").empty();
             var ul = $("<ul></ul>").addClass("pagination");
-            var firstPageLi = $("<li></li>").append($("<a></a>").append("first").attr("href", "#"));
-            var prePageLi = $("<li></li>").append($("<a></a>").append("&laquo;"));
+            var firstPageLink = $("<a></a>").append("first").attr("href", "javascript:void(0);");
+            var prePageLink = $("<a></a>").append("&laquo;").attr("href", "javascript:void(0);");
+            var firstPageLi = $("<li></li>").append(firstPageLink);
+            var prePageLi = $("<li></li>").append(prePageLink);
 
             if (!result.extend.pageInfo.hasPreviousPage) {
                 firstPageLi.addClass("disabled");
                 prePageLi.addClass("disabled");
             } else {
-                firstPageLi.click(function() {
+                firstPageLink.on("click", function(e) {
+                    e.preventDefault();
                     to_page(1);
                 });
-                prePageLi.click(function() {
+                prePageLink.on("click", function(e) {
+                    e.preventDefault();
                     to_page(result.extend.pageInfo.pageNum - 1);
                 });
             }
             ul.append(firstPageLi).append(prePageLi);
 
             $.each(result.extend.pageInfo.navigatepageNums, function(index, item) {
-                var numLi = $("<li></li>").append($("<a></a>").append(item));
+                var numLink = $("<a></a>").append(item).attr("href", "javascript:void(0);");
+                var numLi = $("<li></li>").append(numLink);
                 if (result.extend.pageInfo.pageNum == item) {
                     numLi.addClass("active");
                 }
-                numLi.click(function() {
+                numLink.on("click", function(e) {
+                    e.preventDefault();
                     to_page(item);
                 });
                 ul.append(numLi);
             });
 
-            var nextPageLi = $("<li></li>").append($("<a></a>").append("&raquo;"));
-            var lastPageLi = $("<li></li>").append($("<a></a>").append("last").attr("href", "#"));
+            var nextPageLink = $("<a></a>").append("&raquo;").attr("href", "javascript:void(0);");
+            var lastPageLink = $("<a></a>").append("last").attr("href", "javascript:void(0);");
+            var nextPageLi = $("<li></li>").append(nextPageLink);
+            var lastPageLi = $("<li></li>").append(lastPageLink);
             if (!result.extend.pageInfo.hasNextPage) {
                 nextPageLi.addClass("disabled");
                 lastPageLi.addClass("disabled");
             } else {
-                nextPageLi.click(function() {
+                nextPageLink.on("click", function(e) {
+                    e.preventDefault();
                     to_page(result.extend.pageInfo.pageNum + 1);
                 });
-                lastPageLi.click(function() {
+                lastPageLink.on("click", function(e) {
+                    e.preventDefault();
                     to_page(result.extend.pageInfo.pages);
                 });
             }

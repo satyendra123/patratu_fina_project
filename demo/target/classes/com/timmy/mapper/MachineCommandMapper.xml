@@ -39,9 +39,9 @@
   </select>
 
   <select id="findPendingCommand" resultMap="BaseResultMap">
-    select
+    select top (1000)
     <include refid="Base_Column_List" />
-    from DEVICECMD
+    from DEVICECMD WITH (READUNCOMMITTED)
     where ISNULL(CASE WHEN ISNUMERIC(DC_RES) = 1 THEN CONVERT(INT, DC_RES) ELSE NULL END, 0) = 0
       and ISNULL(CONVERT(INT, IS_DEL_EXECUTED), 0) = #{sendStatus}
       and SLNO = #{serial}
@@ -51,7 +51,7 @@
   </select>
 
   <update id="updateCommandStatus" >
-    update DEVICECMD
+    update DEVICECMD WITH (ROWLOCK)
     set DC_RES = CONVERT(VARCHAR(10), #{status}),
       IS_DEL_EXECUTED = CASE WHEN #{sendStatus} = 1 THEN 1 ELSE 0 END,
       DC_EXECDATE = #{runTime},
@@ -108,7 +108,7 @@
   </insert>
 
   <update id="updateByPrimaryKeySelective" parameterType="com.timmy.entity.MachineCommand" >
-    update DEVICECMD
+    update DEVICECMD WITH (ROWLOCK)
     <set >
       <if test="serial != null" >
         SLNO = #{serial,jdbcType=VARCHAR},
@@ -143,7 +143,7 @@
   </update>
 
   <update id="updateByPrimaryKey" parameterType="com.timmy.entity.MachineCommand" >
-    update DEVICECMD
+    update DEVICECMD WITH (ROWLOCK)
     set
       SLNO = #{serial,jdbcType=VARCHAR},
       CMD_DESC = 'JAVA:' + ISNULL(#{name,jdbcType=VARCHAR}, 'command'),

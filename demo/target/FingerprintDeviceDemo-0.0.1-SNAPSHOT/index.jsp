@@ -741,20 +741,29 @@
 		<!-- æ ‡é¢˜ -->
 		<div class="row">
 			<div class="col-md-12">
-				<h1>IDBS Device Demo</h1>
+				<h1>HOUSTON SYSTEM</h1>
 			</div>
 		</div>
 		<!-- æŒ‰é’® -->
 		<div class="row">
 			<div class="col-md-2 col-md-offset-10">
 			    
-			  <label class="col-xs-3">select device</label>  
-              <select id="deviceSelect"  class="textbox combo" name="distribute_type" style="width: 180px; height: 35px;">						
-                								
-              </select>
+				  <label class="col-xs-3">select device</label>  
+	              <select id="deviceSelect"  class="textbox combo" name="distribute_type" style="width: 180px; height: 35px;">						
+	                								
+	              </select>
+	              <div style="margin-top:8px;">
+	              	<select id="deviceInOutModeSelect" class="form-control" style="width:180px;display:inline-block;height:30px;padding:4px 8px;">
+	              		<option value="AUTO">AUTO</option>
+	              		<option value="IN">IN</option>
+	              		<option value="OUT">OUT</option>
+	              	</select>
+	              	<button class="btn btn-primary btn-xs" id="saveDeviceInOutModeBtn" style="margin-top:6px;width:180px;">Save Device Mode</button>
+	              	<div id="deviceInOutModeCurrent" style="margin-top:6px;font-size:12px;font-weight:600;">Current Mode: AUTO</div>
+	              </div>
 
+				</div>
 			</div>
-		</div>
 		<div class="row">
 			<div class="col-md-12">
 				<div id="deviceStatusBox">
@@ -766,8 +775,15 @@
 		<div class="row" style="margin-top:8px;">
 			<div class="col-md-12">
 				<input type="text" class="form-control" id="userSearchInputTop" placeholder="Search by User ID / Name" style="width: 320px; display:inline-block;">
-				<button class="btn btn-warning" id="syncDbAllDevicesBtn" style="margin-left:8px;">Sync DB -> All Devices</button>
+				<button class="btn btn-warning" id="syncDbAllDevicesBtn" style="margin-left:8px;">SetUserToAllDevice (With Image)</button>
+				<button class="btn btn-default" id="syncStatusAllDevicesBtn" style="margin-left:8px;">Status Sync (Active/Deactive)</button>
+				<button class="btn btn-success" id="enableMasterDeviceSyncBtn" style="margin-left:8px;display:none;">Set Selected As Master</button>
+				<button class="btn btn-default" id="disableMasterDeviceSyncBtn" style="margin-left:8px;display:none;">Disable Master Sync</button>
+				<button class="btn btn-info" id="syncMasterDeviceFullBtn" style="margin-left:8px;display:none;">Master Full Sync -> Others</button>
 				<div id="syncDbAllDevicesStatus" style="margin-top:8px;font-weight:600;white-space:normal;word-break:break-word;"></div>
+				<div id="syncStatusAllDevicesStatus" style="margin-top:4px;font-weight:600;white-space:normal;word-break:break-word;"></div>
+				<div id="syncDbAllDevicesDeviceStatus" style="margin-top:6px;font-size:12px;line-height:1.5;white-space:normal;word-break:break-word;"></div>
+				<div id="masterDeviceSyncStatus" style="margin-top:6px;font-size:12px;line-height:1.5;white-space:normal;word-break:break-word;display:none;"></div>
 			</div>
 		</div>
 		<!-- è¡¨æ ¼æ˜¾ç¤ºå†…å®¹ -->
@@ -805,40 +821,49 @@
 			
 			</div>
 		</div>
-		<button class="btn btn-primary" id="collectList_emp_modal_btn">getUserList</button>
-		<button class="btn btn-primary" id="collectInfo_emp_modal_btn">getUserInfo</button>
+		<button class="btn btn-primary" id="collectList_emp_modal_btn" disabled="disabled">getUserList</button>
+		<button class="btn btn-primary" id="collectInfo_emp_modal_btn" disabled="disabled">getUserInfo</button>
 		<button class="btn btn-primary" id="setUserToDevice_emp_modal_btn">SetUserToDevice</button>
-		<button class="btn btn-primary" id="setUserName_modal_btn">setUserNameToDevice</button>
-		<button class="btn btn-primary" id="initSys_emp_modal_btn">InitSystem</button>
+		<button class="btn btn-primary" id="setUserName_modal_btn" disabled="disabled">setUserNameToDevice</button>
+		<button class="btn btn-primary" id="initSys_emp_modal_btn" disabled="disabled">InitSystem</button>
 		<button class="btn btn-primary" id="logInfo_emp_modal_btn">LogRecord</button>
 		<button class="btn btn-info" id="climsInfo_emp_modal_btn">CLIMSRecord</button>
-		<button class="btn btn-primary" id="download_emp_modal_btn">downloadSelectMessage</button>
-		<button class="btn btn-primary" id="getDeviceInfo_modal_btn">getDeviceInfo</button>
-		<button class="btn btn-primary" id="openDoor_modal_btn">openDoor</button>
-		<button class="btn btn-primary" id="addUser_modal_btn">Add user</button>
-		<button class="btn btn-primary" id="getDevLock_modal_btn">getDevLock</button>
-		<button class="btn btn-primary" id="getUserLock_modal_btn">getUserLock</button>
-		<button class="btn btn-primary" id="cleanAdmin_modal_btn">cleanAdmin</button>
-		<button class="btn btn-primary" id="synchronize_Time">SynchronizeTime</button>
+		<button class="btn btn-warning" id="schedulerStatus_emp_modal_btn">Status</button>
+		<button class="btn btn-primary" id="download_emp_modal_btn" disabled="disabled">downloadSelectMessage</button>
+		<button class="btn btn-primary" id="getDeviceInfo_modal_btn" disabled="disabled">getDeviceInfo</button>
+		<button class="btn btn-primary" id="openDoor_modal_btn" disabled="disabled">openDoor</button>
+		<button class="btn btn-primary" id="addUser_modal_btn" disabled="disabled">Add user</button>
+		<button class="btn btn-primary" id="getDevLock_modal_btn" disabled="disabled">getDevLock</button>
+		<button class="btn btn-primary" id="getUserLock_modal_btn" disabled="disabled">getUserLock</button>
+		<button class="btn btn-primary" id="cleanAdmin_modal_btn" disabled="disabled">cleanAdmin</button>
+		<button class="btn btn-primary" id="synchronize_Time" disabled="disabled">SynchronizeTime</button>
 		<div class="form-inline" style="margin-top:10px;">
 			<input type="text" class="form-control" id="enableUserIdInput" placeholder="User ID (blank = DB sync)" style="width: 190px;">
 			<select class="form-control" id="enableFlagSelect">
 				<option value="1">Active (1)</option>
 				<option value="0">Deactive (0)</option>
 			</select>
-			<button class="btn btn-primary" id="setUserEnable_btn">Send Enable/Disable</button>
+			<button class="btn btn-primary" id="setUserEnable_btn" disabled="disabled">Send Enable/Disable</button>
 		</div>
 	</div>
 	<script type="text/javascript">
 		var totalRecord,currentPage;
 		var currentUserSearchKeyword = "";
 		var userSearchDebounceTimer = null;
-		var lastDbSyncTerminalMessage = "";
-		var deviceStatusRefreshMs = 5000;
-		var deviceStatusRefreshTimer = null;
+			var deviceStatusRefreshMs = 5000;
+			var deviceStatusRefreshTimer = null;
+			var deviceInOutModeBySn = {};
 
 		function normalizeUserSearchText(value){
 			return $.trim((value || ""));
+		}
+
+		function toInt(value, fallback){
+			var parsed = parseInt(value, 10);
+			if(isNaN(parsed)){
+				return (typeof fallback === "number") ? fallback : 0;
+			}
+			return parsed;
 		}
 
 		function applyUserSearchFilter(){
@@ -863,11 +888,71 @@
 			}, 220);
 		}
 
-		function normalizeDeviceOnlineStatus(value){
-			return parseInt(value, 10) === 1;
-		}
+			function normalizeDeviceOnlineStatus(value){
+				return parseInt(value, 10) === 1;
+			}
 
-		function renderDeviceStatusPanel(devices){
+			function normalizeDeviceInOutMode(value){
+				var normalized = $.trim((value || "")).toUpperCase();
+				if(normalized === "IN" || normalized === "0" || normalized === "ENTRY"){
+					return "IN";
+				}
+				if(normalized === "OUT" || normalized === "1" || normalized === "EXIT"){
+					return "OUT";
+				}
+				return "AUTO";
+			}
+
+			function refreshDeviceInOutModeUi(){
+				var serialNum = $.trim($("#deviceSelect").val() || "");
+				var mode = "AUTO";
+				if(serialNum !== "" && deviceInOutModeBySn.hasOwnProperty(serialNum)){
+					mode = normalizeDeviceInOutMode(deviceInOutModeBySn[serialNum]);
+				}
+				$("#deviceInOutModeSelect").val(mode);
+				$("#deviceInOutModeCurrent").text("Current Mode: " + mode);
+			}
+
+			function saveSelectedDeviceInOutMode(){
+				var serialNum = $.trim($("#deviceSelect").val() || "");
+				var mode = normalizeDeviceInOutMode($("#deviceInOutModeSelect").val());
+				if(serialNum === ""){
+					alert("please select device");
+					return;
+				}
+				$("#saveDeviceInOutModeBtn").prop("disabled", true);
+				$.ajax({
+					url:"${APP_PATH}/setDeviceInOutMode?deviceSn=" + encodeURIComponent(serialNum) + "&mode=" + encodeURIComponent(mode),
+					type:"GET",
+					cache:false,
+					success:function(result){
+						var ext = (result && result.extend) ? result.extend : {};
+						var savedMode = normalizeDeviceInOutMode(ext.mode || mode);
+						deviceInOutModeBySn[serialNum] = savedMode;
+						refreshDeviceInOutModeUi();
+						var queued = ext && ext.commandQueued === true;
+						var alertText = "Device mode saved: " + serialNum + " -> " + savedMode;
+						if(queued){
+							alertText += "\nDevice command queued successfully.";
+						}else if(ext && ext.applyToDeviceRequested === true){
+							alertText += "\nMode saved in DB, but device command not queued.";
+						}
+						alert(alertText);
+					},
+					error:function(xhr){
+						var detail = "";
+						if(xhr && xhr.responseText){
+							detail = xhr.responseText;
+						}
+						alert("Failed to save device mode." + (detail ? ("\n" + detail) : ""));
+					},
+					complete:function(){
+						$("#saveDeviceInOutModeBtn").prop("disabled", false);
+					}
+				});
+			}
+
+			function renderDeviceStatusPanel(devices){
 			var panel = $("#deviceStatusPanel");
 			panel.empty();
 			if(!devices || !devices.length){
@@ -876,18 +961,19 @@
 					.appendTo(panel);
 				return;
 			}
-			$.each(devices, function(index, device){
-				var serialNum = $.trim((device && device.serialNum) ? device.serialNum : "");
-				if(serialNum === ""){
-					return;
-				}
-				var isOnline = normalizeDeviceOnlineStatus(device.status);
-				var chip = $("<div></div>").addClass("device-status-chip")
-					.addClass(isOnline ? "online" : "offline");
-				$("<span></span>").addClass("device-status-dot").appendTo(chip);
-				$("<span></span>").text(serialNum).appendTo(chip);
-				chip.appendTo(panel);
-			});
+				$.each(devices, function(index, device){
+					var serialNum = $.trim((device && device.serialNum) ? device.serialNum : "");
+					if(serialNum === ""){
+						return;
+					}
+					var modeText = normalizeDeviceInOutMode(device ? device.inOutMode : "");
+					var isOnline = normalizeDeviceOnlineStatus(device.status);
+					var chip = $("<div></div>").addClass("device-status-chip")
+						.addClass(isOnline ? "online" : "offline");
+					$("<span></span>").addClass("device-status-dot").appendTo(chip);
+					$("<span></span>").text(serialNum + " [" + modeText + "]").appendTo(chip);
+					chip.appendTo(panel);
+				});
 			if(panel.children().length === 0){
 				$("<div></div>").addClass("device-status-empty")
 					.text("No devices available.")
@@ -897,19 +983,20 @@
 
 		function triggerDbAllDevicesSync(withConfirm){
 			if(withConfirm){
-				if(!confirm("Sync database users to all devices? (status + deleted users)")){
+				if(!confirm("Run full image sync (setuserinfo) to all devices?")){
 					return;
 				}
 			}
-			$("#syncDbAllDevicesStatus").text("Sync starting...");
+			$("#syncDbAllDevicesStatus").text("SetUserToAllDevice starting...");
+			$("#syncDbAllDevicesDeviceStatus").text("");
 			$.ajax({
-				url:"${APP_PATH}/syncUsersByDatabaseAllDevices",
+				url:"${APP_PATH}/setUserToAllDevice",
 				type:"GET",
 				cache:false,
 				success:function(result){
 					var ext = (result && result.extend) ? result.extend : {};
 					if(ext.accepted === true){
-						$("#syncDbAllDevicesStatus").text("Sync started in background...");
+						$("#syncDbAllDevicesStatus").text("Full image sync started in background...");
 					}else if(ext.running === true){
 						$("#syncDbAllDevicesStatus").text("Sync already running...");
 					}else{
@@ -923,39 +1010,255 @@
 			});
 		}
 
+		function renderDbSyncDeviceStatus(deviceDetails, deviceSyncStateRows){
+			var panel = $("#syncDbAllDevicesDeviceStatus");
+			panel.empty();
+			var runtimeDetails = $.isArray(deviceDetails) ? deviceDetails : [];
+			var stateRows = $.isArray(deviceSyncStateRows) ? deviceSyncStateRows : [];
+			if(runtimeDetails.length === 0 && stateRows.length === 0){
+				return;
+			}
+			var runtimeBySerial = {};
+			$.each(runtimeDetails, function(index, detail){
+				if(!detail){ return; }
+				var runtimeSerial = $.trim(detail.serial || "");
+				if(runtimeSerial === ""){ return; }
+				runtimeBySerial[runtimeSerial.toUpperCase()] = detail;
+			});
+			var mergedRows = [];
+			$.each(stateRows, function(index, row){
+				if(!row){ return; }
+				var serial = $.trim(row.serial || "");
+				if(serial === ""){ return; }
+				var key = serial.toUpperCase();
+				mergedRows.push({
+					serial: serial,
+					state: row,
+					runtime: runtimeBySerial[key] || null
+				});
+				delete runtimeBySerial[key];
+			});
+			$.each(runtimeBySerial, function(serialKey, detail){
+				if(!detail){ return; }
+				mergedRows.push({
+					serial: $.trim(detail.serial || serialKey),
+					state: null,
+					runtime: detail
+				});
+			});
+			if(mergedRows.length === 0){
+				return;
+			}
+			var table = $("<table></table>").addClass("table table-condensed table-bordered");
+			var thead = $("<thead></thead>");
+			$("<tr></tr>")
+				.append($("<th></th>").text("#"))
+				.append($("<th></th>").text("Device"))
+				.append($("<th></th>").text("Online"))
+				.append($("<th></th>").text("Last Status"))
+				.append($("<th></th>").text("Last Sync At"))
+				.append($("<th></th>").text("Last User ID"))
+				.append($("<th></th>").text("Last Queued"))
+				.append($("<th></th>").text("Delivered (Success)"))
+				.append($("<th></th>").text("Last CleanAdmin"))
+				.append($("<th></th>").text("Total Runs"))
+				.append($("<th></th>").text("Pending Now"))
+				.append($("<th></th>").text("Delta Users"))
+				.append($("<th></th>").text("Queued This Run"))
+				.append($("<th></th>").text("ETA(sec)"))
+				.append($("<th></th>").text("Message"))
+				.appendTo(thead);
+			table.append(thead);
+			var tbody = $("<tbody></tbody>");
+			$.each(mergedRows, function(index, row){
+				if(!row){ return; }
+				var state = row.state || {};
+				var detail = row.runtime || {};
+				var serial = $.trim(row.serial || detail.serial || state.serial || "");
+				if(serial === ""){ serial = "device-" + (index + 1); }
+				var stateOnline = state.online;
+				var detailOnline = detail.online;
+				var online = (stateOnline === true || detailOnline === true || toInt(stateOnline, 0) === 1 || toInt(detailOnline, 0) === 1) ? "Yes" : "No";
+				var lastStatus = $.trim((state.lastSyncStatus || detail.syncStatus || "NEVER")).toUpperCase();
+				var lastSyncAt = $.trim(state.lastSyncAt || detail.lastSyncAt || "");
+				if(lastSyncAt === ""){ lastSyncAt = "-"; }
+				var lastUserId = toInt(state.lastSyncUserId, toInt(detail.lastSyncedUserIdAfter, 0));
+				var lastQueued = toInt(state.lastQueuedSetuserinfo, toInt(detail.queuedSetuserinfo, 0));
+				var deliveredSuccess = toInt(state.deliveredSetuserinfoCount, 0);
+				var lastCleanAdmin = toInt(state.lastQueuedCleanadmin, toInt(detail.queuedCleanAdmin, 0));
+				var totalRuns = toInt(state.totalRuns, 0);
+				var pendingNow = (detail.pendingAfter === undefined || detail.pendingAfter === null || detail.pendingAfter === "") ? "-" : toInt(detail.pendingAfter, 0);
+				var deltaUsers = (detail.deltaUserCount === undefined || detail.deltaUserCount === null || detail.deltaUserCount === "") ? "-" : toInt(detail.deltaUserCount, 0);
+				var queuedThisRun = (detail.queuedSetuserinfo === undefined || detail.queuedSetuserinfo === null || detail.queuedSetuserinfo === "") ? "-" : toInt(detail.queuedSetuserinfo, 0);
+				var etaSec = (detail.estimatedDispatchSeconds === undefined || detail.estimatedDispatchSeconds === null || detail.estimatedDispatchSeconds === "") ? "-" : toInt(detail.estimatedDispatchSeconds, 0);
+				var message = $.trim(detail.syncMessage || state.lastErrorMessage || state.lastSyncMessage || "");
+				if(message === ""){
+					message = "-";
+				}
+				$("<tr></tr>")
+					.append($("<td></td>").text(index + 1))
+					.append($("<td></td>").text(serial))
+					.append($("<td></td>").text(online))
+					.append($("<td></td>").text(lastStatus))
+					.append($("<td></td>").text(lastSyncAt))
+					.append($("<td></td>").text(lastUserId))
+					.append($("<td></td>").text(lastQueued))
+					.append($("<td></td>").text(deliveredSuccess))
+					.append($("<td></td>").text(lastCleanAdmin))
+					.append($("<td></td>").text(totalRuns))
+					.append($("<td></td>").text(pendingNow))
+					.append($("<td></td>").text(deltaUsers))
+					.append($("<td></td>").text(queuedThisRun))
+					.append($("<td></td>").text(etaSec))
+					.append($("<td></td>").text(message))
+					.appendTo(tbody);
+			});
+			table.append(tbody);
+			panel.append(table);
+		}
+
 		function refreshDbSyncStatus(){
 			$.ajax({
-				url:"${APP_PATH}/syncUsersByDatabaseAllDevicesStatus",
+				url:"${APP_PATH}/setUserToAllDeviceStatus",
 				type:"GET",
 				cache:false,
 				success:function(result){
 					var ext = (result && result.extend) ? result.extend : {};
 					var running = ext.running === true;
 					var state = ext.state || "";
-					var queued = ext.totalCommandsQueued;
-					var message = ext.message || "";
-					var text = "";
-					if(running){
-						text = message ? ("Sync running... " + message) : "Sync running...";
-					}else if(state === "SUCCESS"){
-						text = message ? message : "Last sync done";
-						if(!message && queued !== "" && queued != null){
-							text += " (" + queued + " cmds)";
+					var totalQueued = toInt(ext.totalCommandsQueued);
+					var setuserinfoQueued = toInt(ext.setuserinfoCommandsQueued);
+					var cleanadminQueued = toInt(ext.cleanAdminCommandsQueued);
+					var activeUsers = toInt(ext.activeUsers);
+					var enrollRecords = toInt(ext.totalEnrollRecords);
+					var eta = toInt(ext.estimatedDeviceDispatchSeconds);
+					var stateRows = $.isArray(ext.deviceSyncStateRows) ? ext.deviceSyncStateRows : [];
+					var successCount = 0;
+					var failedCount = 0;
+					var neverCount = 0;
+					$.each(stateRows, function(index, row){
+						if(!row){ return; }
+						var status = $.trim((row.lastSyncStatus || "")).toUpperCase();
+						if(status === "SUCCESS"){
+							successCount++;
+						}else if(status === "FAILED"){
+							failedCount++;
+						}else if(status === "" || status === "NEVER"){
+							neverCount++;
 						}
-						if(message && message !== lastDbSyncTerminalMessage){
-							lastDbSyncTerminalMessage = message;
-							alert(message);
-						}
-					}else if(state === "FAILED"){
-						text = message ? ("Last sync failed: " + message) : "Last sync failed";
-						if(message && message !== lastDbSyncTerminalMessage){
-							lastDbSyncTerminalMessage = message;
-							alert("Sync failed: " + message);
-						}
-					}else{
-						text = "Idle";
+					});
+					var message = $.trim(ext.message || "");
+					var normalizedState = $.trim((state || "")).toUpperCase();
+					if(normalizedState === ""){
+						normalizedState = running ? "RUNNING" : "IDLE";
 					}
+					var text = "SetUserToAllDevice | state=" + normalizedState
+						+ " | users=" + activeUsers
+						+ " | enrollRecords=" + enrollRecords
+						+ " | queued=" + totalQueued
+						+ " (setuserinfo=" + setuserinfoQueued + ", cleanadmin=" + cleanadminQueued + ")"
+						+ " | devices=" + stateRows.length
+						+ " (ok=" + successCount + ", fail=" + failedCount + ", never=" + neverCount + ")"
+						+ " | eta=" + eta + " sec";
+					if(normalizedState === "FAILED" && message !== ""){
+						text += " | reason=" + message.substring(0, 120);
+						if(message.length > 120){
+							text += "...";
+						}
+					}
+					text += " | details: Status page";
 					$("#syncDbAllDevicesStatus").text(text);
+					$("#syncDbAllDevicesDeviceStatus").empty();
+				}
+			});
+		}
+
+		function renderMasterDeviceSyncStatus(ext){
+			ext = ext || {};
+			var enabled = ext.masterSyncEnabled === true;
+			var sourceSn = $.trim(ext.masterSyncSourceSn || "");
+			var relayed = parseInt(ext.masterSyncRelayedRecords, 10);
+			if(isNaN(relayed)){ relayed = 0; }
+			var queued = parseInt(ext.masterSyncQueuedCommands, 10);
+			if(isNaN(queued)){ queued = 0; }
+			var updated = $.trim(ext.masterSyncLastUpdated || "");
+			var message = $.trim(ext.masterSyncLastMessage || "");
+			var record = $.trim(ext.masterSyncLastRecord || "");
+			var statusText = enabled ? "ON" : "OFF";
+			var text = "Master Sync " + statusText;
+			if(sourceSn !== ""){
+				text += ", source=" + sourceSn;
+			}
+			text += ", relayedRecords=" + relayed + ", queuedCommands=" + queued;
+			if(updated !== ""){
+				text += ", updated=" + updated;
+			}
+			if(message !== ""){
+				text += ", message=" + message;
+			}
+			if(record !== ""){
+				text += ", lastRecord=" + record;
+			}
+			$("#masterDeviceSyncStatus").text(text);
+		}
+
+		function refreshMasterDeviceSyncStatus(){
+			$.ajax({
+				url:"${APP_PATH}/masterDeviceSyncStatus",
+				type:"GET",
+				cache:false,
+				success:function(result){
+					var ext = (result && result.extend) ? result.extend : {};
+					renderMasterDeviceSyncStatus(ext);
+				}
+			});
+		}
+
+		function configureMasterDeviceSyncFromSelection(enabled){
+			var deviceSn = $.trim($("#deviceSelect").val());
+			if(enabled && deviceSn === ""){
+				alert("please select master device");
+				return;
+			}
+			var url = "${APP_PATH}/configureMasterDeviceSync?enabled=" + (enabled ? "true" : "false");
+			if(deviceSn !== ""){
+				url += "&masterSn=" + encodeURIComponent(deviceSn);
+			}
+			$.ajax({
+				url:url,
+				type:"GET",
+				cache:false,
+				success:function(result){
+					var ext = (result && result.extend) ? result.extend : {};
+					renderMasterDeviceSyncStatus(ext);
+					alert(result.msg);
+				}
+			});
+		}
+
+		function triggerMasterFullSyncFromSelection(){
+			var deviceSn = $.trim($("#deviceSelect").val());
+			if(deviceSn === ""){
+				alert("please select master device");
+				return;
+			}
+			if(!confirm("Queue full registration sync from DB to all devices except selected master?")){
+				return;
+			}
+			$.ajax({
+				url:"${APP_PATH}/syncMasterDeviceFullToAll?masterSn=" + encodeURIComponent(deviceSn) + "&includeMaster=false",
+				type:"GET",
+				cache:false,
+				success:function(result){
+					var ext = (result && result.extend) ? result.extend : {};
+					var note = $.trim(ext.note || "");
+					var targetDevices = parseInt(ext.targetDevices, 10);
+					if(isNaN(targetDevices)){ targetDevices = 0; }
+					var text = "Full sync queued to target devices: " + targetDevices;
+					if(note !== ""){
+						text += "\n" + note;
+					}
+					alert(text);
 				}
 			});
 		}
@@ -973,18 +1276,26 @@
 			getDevice();
 			to_page(1);
 			refreshDbSyncStatus();
+			refreshMasterDeviceSyncStatus();
 			setInterval(refreshDbSyncStatus, 5000);
+			setInterval(refreshMasterDeviceSyncStatus, 5000);
 			if(deviceStatusRefreshTimer){
 				clearInterval(deviceStatusRefreshTimer);
 			}
 			deviceStatusRefreshTimer = setInterval(function(){
 				getDevice();
 			}, deviceStatusRefreshMs);
-			$("#userSearchInputTop").on("input", function(){
-				currentUserSearchKeyword = normalizeUserSearchText($(this).val());
-				queueUserSearchReload();
+				$("#userSearchInputTop").on("input", function(){
+					currentUserSearchKeyword = normalizeUserSearchText($(this).val());
+					queueUserSearchReload();
+				});
+				$("#deviceSelect").on("change", function(){
+					refreshDeviceInOutModeUi();
+				});
+				$("#saveDeviceInOutModeBtn").on("click", function(){
+					saveSelectedDeviceInOutMode();
+				});
 			});
-		});
 		
 		function to_page(pn){
 			$.ajax({
@@ -1047,9 +1358,11 @@
 				var disableBtu = $("<button></button>").addClass("btn btn-warning btn-sm disable_user_btu")
 					.append("<span></span>").append("Disable");
 				disableBtu.attr("status-id",userId);
+				disableBtu.prop("disabled", true);
 				var enableBtu = $("<button></button>").addClass("btn btn-success btn-sm enable_user_btu")
 					.append("<span></span>").append("Enable");
 				enableBtu.attr("status-id",userId);
+				enableBtu.prop("disabled", true);
 				var btuTd = $("<td></td>").append(delBtu).append(" ").append(editBtu).append(" ").append(uploadBtu)
 					.append(" ").append(disableBtu).append(" ").append(enableBtu);
 				//appendæ–¹æ³•æ‰§è¡Œå®ŒåŽä»è¿”å›žåŽŸæ¥çš„å…ƒç´ 
@@ -1130,36 +1443,42 @@
 			$.ajax({
 				url:"${APP_PATH}/device",
 				type:"GET",
-				cache:false,
-				success:function(result){
-					var devices = (result && result.extend && result.extend.device) ? result.extend.device : [];
-					var selectedValue = $.trim($("#deviceSelect").val() || "");
-					var selectEl = $("#deviceSelect");
-					selectEl.empty();
-					$.each(devices, function(){
-						var serialNum = $.trim((this && this.serialNum) ? this.serialNum : "");
-						if(serialNum === ""){
-							return;
-						}
-                        $("<option></option>").append(serialNum).attr("value", serialNum).appendTo(selectEl);
-                    });
-					if(selectedValue !== ""){
-						selectEl.find("option").each(function(){
-							if($(this).val() === selectedValue){
+					cache:false,
+					success:function(result){
+						var devices = (result && result.extend && result.extend.device) ? result.extend.device : [];
+						var latestModeMap = {};
+						var selectedValue = $.trim($("#deviceSelect").val() || "");
+						var selectEl = $("#deviceSelect");
+						selectEl.empty();
+						$.each(devices, function(){
+							var serialNum = $.trim((this && this.serialNum) ? this.serialNum : "");
+							if(serialNum === ""){
+								return;
+							}
+							latestModeMap[serialNum] = normalizeDeviceInOutMode(this ? this.inOutMode : "");
+	                        $("<option></option>").append(serialNum).attr("value", serialNum).appendTo(selectEl);
+	                    });
+						deviceInOutModeBySn = latestModeMap;
+						if(selectedValue !== ""){
+							selectEl.find("option").each(function(){
+								if($(this).val() === selectedValue){
 								selectEl.val(selectedValue);
 								return false;
 							}
 						});
 					}
-					if(!selectEl.val() && selectEl.find("option").length > 0){
-						selectEl.prop("selectedIndex", 0);
-					}
-					renderDeviceStatusPanel(devices);
+						if(!selectEl.val() && selectEl.find("option").length > 0){
+							selectEl.prop("selectedIndex", 0);
+						}
+						renderDeviceStatusPanel(devices);
+						refreshDeviceInOutModeUi();
 
-				},
-				error:function(){
-					renderDeviceStatusPanel([]);
-				}
+					},
+					error:function(){
+						deviceInOutModeBySn = {};
+						renderDeviceStatusPanel([]);
+						refreshDeviceInOutModeUi();
+					}
 				
 			});
 		}
@@ -1470,6 +1789,44 @@
 			triggerDbAllDevicesSync(true);
 	      });
 
+	      $("#syncStatusAllDevicesBtn").click(function(){
+			$("#syncStatusAllDevicesStatus").text("Syncing status from DB to all devices...");
+			$.ajax({
+				url:"${APP_PATH}/syncUsersStatusAllDevices",
+				type:"GET",
+				cache:false,
+				success:function(result){
+					var ext = (result && result.extend) ? result.extend : {};
+					var devices = toInt(ext.devices, 0);
+					var users = toInt(ext.users, 0);
+					var activeUsers = toInt(ext.activeUsers, 0);
+					var inactiveUsers = toInt(ext.inactiveUsers, 0);
+					var queued = toInt(ext.commandsQueued, 0);
+					var text = "Status sync done | devices=" + devices
+						+ ", users=" + users
+						+ " (active=" + activeUsers + ", deactive=" + inactiveUsers + ")"
+						+ ", commandsQueued=" + queued;
+					$("#syncStatusAllDevicesStatus").text(text);
+					alert(result.msg + "\n" + text);
+				},
+				error:function(){
+					$("#syncStatusAllDevicesStatus").text("Status sync failed");
+				}
+			});
+	      });
+
+	      $("#enableMasterDeviceSyncBtn").click(function(){
+			configureMasterDeviceSyncFromSelection(true);
+	      });
+
+	      $("#disableMasterDeviceSyncBtn").click(function(){
+			configureMasterDeviceSyncFromSelection(false);
+	      });
+
+	      $("#syncMasterDeviceFullBtn").click(function(){
+			triggerMasterFullSyncFromSelection();
+	      });
+
 	      function sendUserEnableCommand(enrollId, enFlag){
 			var deviceSn = $.trim($("#deviceSelect").val());
 			$.ajax({
@@ -1534,7 +1891,25 @@
 					url:"${APP_PATH}/sendWs?deviceSn="+deviceSn,
 					type:"GET",
 					success:function(result){
-						alert(result.msg);
+						var ext = (result && result.extend) ? result.extend : {};
+						var exportDir = $.trim(ext.exportDir || "");
+						var bundleFile = $.trim(ext.bundleFile || "");
+						var sourceDeviceSn = $.trim(ext.sourceDeviceSn || "");
+						var note = $.trim(ext.note || "");
+						var alertText = result.msg;
+						if(sourceDeviceSn !== ""){
+							alertText += "\nSource Device: " + sourceDeviceSn;
+						}
+						if(exportDir !== ""){
+							alertText += "\nExport: " + exportDir;
+						}
+						if(bundleFile !== ""){
+							alertText += "\nBundle: " + bundleFile;
+						}
+						if(note !== ""){
+							alertText += "\n" + note;
+						}
+						alert(alertText);
 						//å›žåˆ°å½“å‰é¡µ
 						to_page(currentPage);
 					}
@@ -1556,27 +1931,106 @@
 					url:"${APP_PATH}/getUserInfo?deviceSn="+deviceSn,
 					type:"GET",
 					success:function(result){
-						alert(result.msg);
+						var ext = (result && result.extend) ? result.extend : {};
+						var exportDir = $.trim(ext.exportDir || "");
+						var bundleFile = $.trim(ext.bundleFile || "");
+						var note = $.trim(ext.note || "");
+						var alertText = result.msg;
+						if(exportDir !== ""){
+							alertText += "\nExport: " + exportDir;
+						}
+						if(bundleFile !== ""){
+							alertText += "\nBundle: " + bundleFile;
+						}
+						if(note !== ""){
+							alertText += "\n" + note;
+						}
+						alert(alertText);
 						//å›žåˆ°å½“å‰é¡µ
 						to_page(currentPage);
 					}
 				});
 			}
 		});
-		$("#setUserToDevice_emp_modal_btn").click(function(){
-			var deviceSn=document.getElementById('deviceSelect').value;
-			if(confirm("do you want to send user info to deviceï¼Ÿ")){
-				//ç¡®è®¤ï¼Œå‘é€ajaxè¯·æ±‚ï¼Œåˆ é™¤
-				$.ajax({
-					url:"${APP_PATH}/setPersonToDevice?deviceSn="+deviceSn,
-					type:"GET",
-					success:function(result){
-						alert(result.msg);
-						//å›žåˆ°å½“å‰é¡µ
-						to_page(currentPage);
-					}
-				});
-			}
+			$("#setUserToDevice_emp_modal_btn").click(function(){
+				var deviceSn=document.getElementById('deviceSelect').value;
+				if(confirm("do you want to send user info to deviceï¼Ÿ")){
+					//ç¡®è®¤ï¼Œå‘é€ajaxè¯·æ±‚ï¼Œåˆ é™¤
+					$.ajax({
+						url:"${APP_PATH}/setPersonToDevice?deviceSn="+deviceSn,
+						type:"GET",
+						success:function(result){
+							var ext = (result && result.extend) ? result.extend : {};
+							var alertText = (result && result.msg) ? result.msg : "Success";
+							if(ext.deviceSn){
+								alertText += "\nDevice: " + ext.deviceSn;
+							}
+							if(typeof ext.activeUsers !== "undefined"){
+								alertText += "\nActive Users: " + ext.activeUsers;
+							}
+							if(typeof ext.totalRecords !== "undefined"){
+								alertText += "\nTotal DB Records: " + ext.totalRecords;
+							}
+							if(typeof ext.deltaUsers !== "undefined"){
+								alertText += "\nDelta Users: " + ext.deltaUsers;
+							}
+							if(typeof ext.deltaRecords !== "undefined"){
+								alertText += "\nDelta Records: " + ext.deltaRecords;
+							}
+							if(typeof ext.queuedRecords !== "undefined"){
+								alertText += "\nQueued Records: " + ext.queuedRecords;
+							}
+							if(typeof ext.imageRecords !== "undefined"){
+								alertText += "\nImage Records(backup 50): " + ext.imageRecords;
+							}
+							if(typeof ext.faceRecords !== "undefined"){
+								alertText += "\nFace Records(20-27): " + ext.faceRecords;
+							}
+							if(typeof ext.passwordRecords !== "undefined"){
+								alertText += "\nPassword Records: " + ext.passwordRecords;
+							}
+							if(typeof ext.cardRecords !== "undefined"){
+								alertText += "\nCard Records: " + ext.cardRecords;
+							}
+							if(typeof ext.pendingBefore !== "undefined"){
+								alertText += "\nPending Before: " + ext.pendingBefore;
+							}
+							if(typeof ext.clearedPending !== "undefined"){
+								alertText += "\nCleared Pending: " + ext.clearedPending;
+							}
+							if(typeof ext.pendingAfter !== "undefined"){
+								alertText += "\nPending After: " + ext.pendingAfter;
+							}
+							if(ext.syncStatus){
+								alertText += "\nSync Status: " + ext.syncStatus;
+							}
+							if(ext.syncMessage){
+								alertText += "\nSync Message: " + ext.syncMessage;
+							}
+							if(typeof ext.lastSyncedUserIdBefore !== "undefined"){
+								alertText += "\nLast Sync User ID Before: " + ext.lastSyncedUserIdBefore;
+							}
+							if(typeof ext.lastSyncedUserIdAfter !== "undefined"){
+								alertText += "\nLast Sync User ID After: " + ext.lastSyncedUserIdAfter;
+							}
+							if(typeof ext.estimatedDispatchSeconds !== "undefined"){
+								alertText += "\nEstimated Dispatch: " + ext.estimatedDispatchSeconds + " sec";
+							}
+							if(typeof ext.estimatedDispatchMinutes !== "undefined"){
+								alertText += " (" + ext.estimatedDispatchMinutes + " min)";
+							}
+							if(typeof ext.dispatchRatePerMinute !== "undefined"){
+								alertText += "\nCurrent Dispatch Rate: " + ext.dispatchRatePerMinute + " records/min";
+							}
+							if(ext.note){
+								alertText += "\n" + ext.note;
+							}
+							alert(alertText);
+							//å›žåˆ°å½“å‰é¡µ
+							to_page(currentPage);
+						}
+					});
+				}
 		});
 		
 		
@@ -1616,17 +2070,16 @@
 		
     
     $("#logInfo_emp_modal_btn").click(function(){
-		
-    	var deviceSn=document.getElementById('deviceSelect').value;
-    	alert("serial num"+deviceSn);
-    	window.location.href="${APP_PATH}/logRecords.jsp?deviceSn="+deviceSn;
-    	
-		
+		window.location.href="${APP_PATH}/logRecords.jsp";
 	});
 
     $("#climsInfo_emp_modal_btn").click(function(){
 		var deviceSn=document.getElementById('deviceSelect').value;
 		window.location.href="${APP_PATH}/climsRecordsPage?deviceSn="+deviceSn;
+	});
+
+    $("#schedulerStatus_emp_modal_btn").click(function(){
+		window.location.href="${APP_PATH}/schedulerStatusPage";
 	});
     
      //èŽ·å–è®¾å¤‡ä¿¡æ¯

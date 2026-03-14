@@ -1,7 +1,5 @@
 package com.timmy.entity;
 
-import java.util.Date;
-
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
@@ -14,9 +12,11 @@ public class Records {
    private int mode;
    private int intout;
    private int event;
+   private String userName;
    private String deviceSerialNum;
    private double temperature;
    private String image;
+   private String imageBase64;
 	
 	
 	public int getId() {
@@ -55,6 +55,12 @@ public class Records {
 	public void setEvent(int event) {
 		this.event = event;
 	}
+	public String getUserName() {
+		return userName;
+	}
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
 	public String getDeviceSerialNum() {
 		return deviceSerialNum;
 	}
@@ -73,6 +79,12 @@ public class Records {
 	}
 	public void setImage(String image) {
 		this.image = image;
+	}
+	public String getImageBase64() {
+		return imageBase64;
+	}
+	public void setImageBase64(String imageBase64) {
+		this.imageBase64 = imageBase64;
 	}
 	
 }

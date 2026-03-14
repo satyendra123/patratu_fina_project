@@ -57,4 +57,9 @@ public class RecordsServiceImpl implements RecordsService{
 		return recordsMapper.selectAllRecords();
 	}
 
+	@Override
+	public List<Records> selectRecordsByKeyword(String keyword) {
+		return recordsMapper.selectRecordsByKeyword(keyword);
+	}
+
 }

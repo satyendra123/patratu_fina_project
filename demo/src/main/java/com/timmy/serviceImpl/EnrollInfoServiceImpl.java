@@ -1,7 +1,9 @@
 package com.timmy.serviceImpl;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -74,26 +76,32 @@ public class EnrollInfoServiceImpl implements EnrollInfoService{
 
 	@Override
 	public List<UserInfo> usersToSendDevice() {
-		List<Person>persons=personMapper.selectAll();
-		List<EnrollInfo>enrollInfos=enrollInfoMapper.selectAll();
-		List<UserInfo>userInfos=new ArrayList<UserInfo>();
-		for (int i = 0; i < persons.size(); i++) {
-			//Person person=new Person();
-			for (int j = 0; j < enrollInfos.size(); j++) {
-				if(persons.get(i).getId().longValue()==enrollInfos.get(j).getEnrollId().longValue()){
-					UserInfo userInfo=new UserInfo();
-					userInfo.setAdmin(persons.get(i).getRollId());
-					userInfo.setBackupnum(enrollInfos.get(j).getBackupnum());
-					userInfo.setEnrollId(persons.get(i).getId());
-					userInfo.setName(persons.get(i).getName());
-					userInfo.setRecord(enrollInfos.get(j).getSignatures());
-					
-					userInfos.add(userInfo);
-				}
-				
+		List<Person> persons = personMapper.selectAll();
+		List<EnrollInfo> enrollInfos = enrollInfoMapper.selectAll();
+		List<UserInfo> userInfos = new ArrayList<UserInfo>();
+		Map<Long, Person> personById = new LinkedHashMap<Long, Person>();
+		for (Person person : persons) {
+			if (person == null || person.getId() == null) {
+				continue;
 			}
+			personById.put(person.getId(), person);
 		}
-
+		for (EnrollInfo enrollInfo : enrollInfos) {
+			if (enrollInfo == null || enrollInfo.getEnrollId() == null || enrollInfo.getBackupnum() == null) {
+				continue;
+			}
+			Person person = personById.get(enrollInfo.getEnrollId());
+			if (person == null) {
+				continue;
+			}
+			UserInfo userInfo = new UserInfo();
+			userInfo.setAdmin(person.getRollId() == null ? 0 : person.getRollId());
+			userInfo.setBackupnum(enrollInfo.getBackupnum());
+			userInfo.setEnrollId(person.getId());
+			userInfo.setName(person.getName() == null ? "" : person.getName());
+			userInfo.setRecord(enrollInfo.getSignatures() == null ? "" : enrollInfo.getSignatures());
+			userInfos.add(userInfo);
+		}
 		return userInfos;
 	}
 

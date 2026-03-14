@@ -25,4 +25,6 @@ public interface RecordsMapper {
     int updateByPrimaryKey(Records record);
     
     List<Records> selectAllRecords();
+
+    List<Records> selectRecordsByKeyword(@Param("keyword") String keyword);
 }

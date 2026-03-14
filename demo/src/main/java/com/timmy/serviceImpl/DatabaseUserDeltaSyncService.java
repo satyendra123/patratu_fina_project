@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -45,10 +46,14 @@ public class DatabaseUserDeltaSyncService {
 	private static final String SNAPSHOT_FILE_NAME = "idsl-user-status-sync-cache.properties";
 	private static final String ACTIVE_PREFIX = "U.";
 	private static final String DELETED_PREFIX = "D.";
+	private static final String TRANSITION_AUDIT_TABLE = "JAVA_VERIFY_SCHEDULER_AUDIT";
+	private static final String USER_SYNC_STATE_TABLE = "JAVA_VERIFY_USER_SYNC_STATE";
 	private static final Pattern ENABLE_CMD_ENROLL_PATTERN = Pattern.compile("\"enrollid\"\\s*:\\s*(\\d+)");
 	private static final Pattern ENABLE_CMD_ENFLAG_PATTERN = Pattern.compile("\"enflag\"\\s*:\\s*(\\d+)");
 
 	private final Object syncLock = new Object();
+	private volatile boolean transitionAuditTableEnsured;
+	private volatile boolean userSyncStateTableEnsured;
 
 	@Autowired
 	private PersonService personService;
@@ -58,6 +63,293 @@ public class DatabaseUserDeltaSyncService {
 
 	@Autowired
 	private DataSource dataSource;
+
+	public SyncResult syncChangedStatusTransitionsByVerify(String trigger) {
+		synchronized (syncLock) {
+			long startedMs = System.currentTimeMillis();
+			SyncResult result = new SyncResult();
+			result.setTrigger(trigger);
+			result.setStartedAt(new Date(startedMs));
+			result.setSnapshotFile("");
+			Long auditId = createTransitionSyncAuditStart(result.getStartedAt());
+			log.info("[DB-VERIFY-TRANSITION-SYNC] start trigger={}, mode=daily-transition-only", trigger);
+			try {
+				List<String> serials = getAllKnownDeviceSerials();
+				result.setDevices(serials.size());
+				result.setOnlineDevices(countOnlineDevices(serials));
+				if (serials.isEmpty()) {
+					result.setSuccess(false);
+					result.setError("No devices found in database.");
+					result.setReason("No devices configured in database.");
+					long finishedNoDeviceMs = System.currentTimeMillis();
+					result.setFinishedAt(new Date(finishedNoDeviceMs));
+					result.setDurationMs(finishedNoDeviceMs - startedMs);
+				} else {
+					Map<Long, Integer> currentActive = loadCurrentActiveStatuses();
+					result.setActiveUsers(currentActive.size());
+					result.setDeletedUsers(0);
+					result.setSnapshotLoaded(false);
+
+					Map<Long, Integer> currentStatusByUser = normalizeStatusMap(currentActive);
+					Map<Long, Integer> stateStatusByUser = loadUserSyncStateByUser(currentStatusByUser.keySet());
+					Map<Long, Integer> upsertsForState = new LinkedHashMap<Long, Integer>();
+					if (stateStatusByUser.isEmpty()) {
+						// First scheduler run initializes baseline state and does not flood devices.
+						upsertsForState.putAll(currentStatusByUser);
+						saveUserSyncState(upsertsForState);
+						result.setSuccess(true);
+						result.setReason(
+								"No previous sync state found; baseline initialized. Transition sync will start from next run.");
+						result.setEnabledUsers(0);
+						result.setDisabledUsers(0);
+						result.setChangedStatusUsers(0);
+						result.setChangedDeletedUsers(0);
+						result.setEnableCommandsQueued(0);
+						result.setDisableCommandsQueued(0);
+						result.setStatusCommandsQueued(0);
+						result.setDeleteCommandsQueued(0);
+						result.setTotalCommandsQueued(0);
+						result.setEstimatedDeviceDispatchSeconds(0L);
+					} else {
+						Map<Long, Integer> changedToEnabled = new LinkedHashMap<Long, Integer>();
+						Map<Long, Integer> changedToDisabled = new LinkedHashMap<Long, Integer>();
+						for (Map.Entry<Long, Integer> entry : currentStatusByUser.entrySet()) {
+							Long userId = entry.getKey();
+							if (userId == null) {
+								continue;
+							}
+							int currentStatus = entry.getValue().intValue();
+							Integer previousStatus = stateStatusByUser.get(userId);
+							if (previousStatus == null) {
+								// New user in state tracking; initialize baseline without transition command.
+								upsertsForState.put(userId, Integer.valueOf(currentStatus));
+								continue;
+							}
+							if (currentStatus == previousStatus.intValue()) {
+								continue;
+							}
+							if (currentStatus == 0) {
+								changedToDisabled.put(userId, Integer.valueOf(0));
+							} else {
+								changedToEnabled.put(userId, Integer.valueOf(1));
+							}
+							upsertsForState.put(userId, Integer.valueOf(currentStatus));
+						}
+
+						int enableCommandsQueued = queueStatusCommands(changedToEnabled, serials);
+						int disableCommandsQueued = queueStatusCommands(changedToDisabled, serials);
+						int totalCommandsQueued = enableCommandsQueued + disableCommandsQueued;
+						int changedUsers = changedToEnabled.size() + changedToDisabled.size();
+						saveUserSyncState(upsertsForState);
+
+						result.setEnabledUsers(changedToEnabled.size());
+						result.setDisabledUsers(changedToDisabled.size());
+						result.setChangedStatusUsers(changedUsers);
+						result.setChangedDeletedUsers(0);
+						result.setEnableCommandsQueued(enableCommandsQueued);
+						result.setDisableCommandsQueued(disableCommandsQueued);
+						result.setStatusCommandsQueued(totalCommandsQueued);
+						result.setDeleteCommandsQueued(0);
+						result.setTotalCommandsQueued(totalCommandsQueued);
+						result.setEstimatedDeviceDispatchSeconds(estimateDeviceDispatchSeconds(changedUsers));
+
+						if (result.getTotalCommandsQueued() == 0) {
+							result.setEstimatedDeviceDispatchSeconds(0L);
+							if (upsertsForState.isEmpty()) {
+								result.setReason("No enable/disable transitions found. Nothing queued.");
+							} else {
+								result.setReason(
+										"No transitions found; new users added to sync-state baseline without queueing commands.");
+							}
+						} else if (result.getOnlineDevices() <= 0) {
+							result.setReason("Commands queued in DEVICECMD, but no websocket device is online right now.");
+						}
+
+						log.info(
+								"[DB-VERIFY-TRANSITION-SYNC] queued trigger={}, activeUsers={}, changedUsers={}, changedToEnabled={}, changedToDisabled={}, queued(total={}, enable={}, disable={}), devices={}, onlineDevices={}",
+								trigger, result.getActiveUsers(), result.getChangedStatusUsers(), result.getEnabledUsers(),
+								result.getDisabledUsers(), result.getTotalCommandsQueued(), result.getEnableCommandsQueued(),
+								result.getDisableCommandsQueued(), result.getDevices(), result.getOnlineDevices());
+					}
+					result.setSuccess(true);
+					if (hasText(result.getReason())) {
+						log.warn("[DB-VERIFY-TRANSITION-SYNC] reason trigger={}, message={}", trigger, result.getReason());
+					}
+				}
+			} catch (Exception ex) {
+				result.setSuccess(false);
+				result.setError(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+				log.error("[DB-VERIFY-TRANSITION-SYNC] failed trigger={}, error={}", trigger, result.getError(), ex);
+			}
+			long finishedMs = System.currentTimeMillis();
+			result.setFinishedAt(new Date(finishedMs));
+			result.setDurationMs(finishedMs - startedMs);
+			log.info(
+					"[DB-VERIFY-TRANSITION-SYNC] finish trigger={}, success={}, durationMs={}, devices={}, onlineDevices={}, queuedTotal={}, reason={}, error={}",
+					trigger, result.isSuccess(), result.getDurationMs(), result.getDevices(), result.getOnlineDevices(),
+					result.getTotalCommandsQueued(), result.getReason(), result.getError());
+			updateTransitionSyncAuditFinish(auditId, result);
+			return result;
+		}
+	}
+
+	private Long createTransitionSyncAuditStart(Date startedAt) {
+		try {
+			JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+			ensureTransitionAuditTable(jdbcTemplate);
+			String sql = "insert into " + TRANSITION_AUDIT_TABLE + " (ACTIVE_USER, DISABLE_USER, STATUS, STARTED_AT, FINISHED_AT) "
+					+ "output INSERTED.ID values (?, ?, ?, ?, ?)";
+			return jdbcTemplate.queryForObject(sql, Long.class, 0, 0, "RUNNING", toTimestamp(startedAt), null);
+		} catch (Exception ex) {
+			log.warn("[DB-VERIFY-TRANSITION-SYNC] failed to create start audit row. error={}", ex.getMessage());
+			return null;
+		}
+	}
+
+	private void updateTransitionSyncAuditFinish(Long auditId, SyncResult result) {
+		if (auditId == null || result == null) {
+			return;
+		}
+		try {
+			JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+			ensureTransitionAuditTable(jdbcTemplate);
+			String sql = "update " + TRANSITION_AUDIT_TABLE
+					+ " set ACTIVE_USER = ?, DISABLE_USER = ?, STATUS = ?, FINISHED_AT = ? where ID = ?";
+			jdbcTemplate.update(sql,
+					result.getEnabledUsers(),
+					result.getDisabledUsers(),
+					result.isSuccess() ? "SUCCESS" : "FAILED",
+					toTimestamp(result.getFinishedAt()),
+					auditId);
+		} catch (Exception ex) {
+			log.warn("[DB-VERIFY-TRANSITION-SYNC] failed to update finish audit row. auditId={}, error={}",
+					auditId, ex.getMessage());
+		}
+	}
+
+	private void ensureTransitionAuditTable(JdbcTemplate jdbcTemplate) {
+		if (transitionAuditTableEnsured) {
+			return;
+		}
+		String ddl = "IF OBJECT_ID('dbo." + TRANSITION_AUDIT_TABLE + "', 'U') IS NULL "
+				+ "BEGIN "
+				+ "CREATE TABLE dbo." + TRANSITION_AUDIT_TABLE + " ("
+				+ "ID BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY, "
+				+ "ACTIVE_USER INT NOT NULL DEFAULT 0, "
+				+ "DISABLE_USER INT NOT NULL DEFAULT 0, "
+				+ "STATUS VARCHAR(20) NOT NULL, "
+				+ "STARTED_AT DATETIME2(0) NOT NULL, "
+				+ "FINISHED_AT DATETIME2(0) NULL "
+				+ "); "
+				+ "END; "
+				+ "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_" + TRANSITION_AUDIT_TABLE
+				+ "_STARTED_AT' AND object_id = OBJECT_ID('dbo." + TRANSITION_AUDIT_TABLE + "')) "
+				+ "BEGIN "
+				+ "CREATE INDEX IX_" + TRANSITION_AUDIT_TABLE + "_STARTED_AT ON dbo." + TRANSITION_AUDIT_TABLE
+				+ " (STARTED_AT DESC); "
+				+ "END;";
+		jdbcTemplate.execute(ddl);
+		transitionAuditTableEnsured = true;
+	}
+
+	private Timestamp toTimestamp(Date value) {
+		if (value == null) {
+			return null;
+		}
+		return new Timestamp(value.getTime());
+	}
+
+	public SyncResult syncAllUsersToAllDevicesByVerify(String trigger) {
+		synchronized (syncLock) {
+			long startedMs = System.currentTimeMillis();
+			SyncResult result = new SyncResult();
+			result.setTrigger(trigger);
+			result.setStartedAt(new Date(startedMs));
+			result.setSnapshotFile("");
+			log.info("[DB-VERIFY-SYNC] start trigger={}, mode=daily-full-verify", trigger);
+			try {
+				List<String> serials = getAllKnownDeviceSerials();
+				result.setDevices(serials.size());
+				result.setOnlineDevices(countOnlineDevices(serials));
+				if (serials.isEmpty()) {
+					result.setSuccess(false);
+					result.setError("No devices found in database.");
+					result.setReason("No devices configured in database.");
+					long finishedNoDeviceMs = System.currentTimeMillis();
+					result.setFinishedAt(new Date(finishedNoDeviceMs));
+					result.setDurationMs(finishedNoDeviceMs - startedMs);
+					return result;
+				}
+
+				Map<Long, Integer> currentActive = loadCurrentActiveStatuses();
+				result.setActiveUsers(currentActive.size());
+				result.setDeletedUsers(0);
+				result.setSnapshotLoaded(false);
+
+				List<Long> enabledUserIds = new ArrayList<Long>();
+				List<Long> disabledUserIds = new ArrayList<Long>();
+				for (Map.Entry<Long, Integer> entry : currentActive.entrySet()) {
+					Long userId = entry.getKey();
+					if (userId == null) {
+						continue;
+					}
+					int normalizedStatus = normalizeEnableStatus(entry.getValue());
+					if (normalizedStatus == 0) {
+						disabledUserIds.add(userId);
+					} else {
+						enabledUserIds.add(userId);
+					}
+				}
+				Collections.sort(enabledUserIds);
+				Collections.sort(disabledUserIds);
+
+				int enableCommandsQueued = queueEnableDisablePhaseCommands(enabledUserIds, 1, serials);
+				int disableCommandsQueued = queueEnableDisablePhaseCommands(disabledUserIds, 0, serials);
+				int totalCommandsQueued = enableCommandsQueued + disableCommandsQueued;
+				Map<Long, Integer> currentStatusByUser = normalizeStatusMap(currentActive);
+				saveUserSyncState(currentStatusByUser);
+
+				result.setEnabledUsers(enabledUserIds.size());
+				result.setDisabledUsers(disabledUserIds.size());
+				result.setChangedStatusUsers(currentActive.size());
+				result.setChangedDeletedUsers(0);
+				result.setEnableCommandsQueued(enableCommandsQueued);
+				result.setDisableCommandsQueued(disableCommandsQueued);
+				result.setStatusCommandsQueued(totalCommandsQueued);
+				result.setDeleteCommandsQueued(0);
+				result.setTotalCommandsQueued(totalCommandsQueued);
+				result.setEstimatedDeviceDispatchSeconds(estimateDeviceDispatchSeconds(currentActive.size()));
+
+				if (result.getTotalCommandsQueued() == 0) {
+					result.setEstimatedDeviceDispatchSeconds(0L);
+					result.setReason("No active users found to queue.");
+				} else if (result.getOnlineDevices() <= 0) {
+					result.setReason("Commands queued in DEVICECMD, but no websocket device is online right now.");
+				}
+				result.setSuccess(true);
+				log.info(
+						"[DB-VERIFY-SYNC] queued trigger={}, users(total={}, enabled={}, disabled={}), queued(total={}, enable={}, disable={}), devices={}, onlineDevices={}",
+						trigger, result.getActiveUsers(), result.getEnabledUsers(), result.getDisabledUsers(),
+						result.getTotalCommandsQueued(), result.getEnableCommandsQueued(),
+						result.getDisableCommandsQueued(), result.getDevices(), result.getOnlineDevices());
+				if (hasText(result.getReason())) {
+					log.warn("[DB-VERIFY-SYNC] reason trigger={}, message={}", trigger, result.getReason());
+				}
+			} catch (Exception ex) {
+				result.setSuccess(false);
+				result.setError(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+				log.error("[DB-VERIFY-SYNC] failed trigger={}, error={}", trigger, result.getError(), ex);
+			}
+			long finishedMs = System.currentTimeMillis();
+			result.setFinishedAt(new Date(finishedMs));
+			result.setDurationMs(finishedMs - startedMs);
+			log.info(
+					"[DB-VERIFY-SYNC] finish trigger={}, success={}, durationMs={}, devices={}, onlineDevices={}, queuedTotal={}, reason={}, error={}",
+					trigger, result.isSuccess(), result.getDurationMs(), result.getDevices(), result.getOnlineDevices(),
+					result.getTotalCommandsQueued(), result.getReason(), result.getError());
+			return result;
+		}
+	}
 
 	public SyncResult syncChangedUsersToAllDevices(String trigger) {
 		synchronized (syncLock) {
@@ -234,6 +526,123 @@ public class DatabaseUserDeltaSyncService {
 					skippedDuplicate, changedStatuses.size(), serials.size());
 		}
 		return queued;
+	}
+
+	private int queueEnableDisablePhaseCommands(List<Long> userIds, int enFlag, List<String> serials) {
+		if (userIds == null || userIds.isEmpty() || serials == null || serials.isEmpty()) {
+			return 0;
+		}
+		int queued = 0;
+		List<MachineCommand> batch = new ArrayList<MachineCommand>(BATCH_SIZE);
+		for (Long userId : userIds) {
+			if (userId == null) {
+				continue;
+			}
+			for (String serial : serials) {
+				batch.add(buildEnableCommand(userId, enFlag, serial));
+				queued++;
+				if (batch.size() >= BATCH_SIZE) {
+					insertBatch(batch);
+					batch.clear();
+				}
+			}
+		}
+		if (!batch.isEmpty()) {
+			insertBatch(batch);
+		}
+		return queued;
+	}
+
+	private Map<Long, Integer> normalizeStatusMap(Map<Long, Integer> source) {
+		Map<Long, Integer> normalized = new LinkedHashMap<Long, Integer>();
+		if (source == null || source.isEmpty()) {
+			return normalized;
+		}
+		for (Map.Entry<Long, Integer> entry : source.entrySet()) {
+			Long userId = entry.getKey();
+			if (userId == null) {
+				continue;
+			}
+			normalized.put(userId, Integer.valueOf(normalizeEnableStatus(entry.getValue())));
+		}
+		return normalized;
+	}
+
+	private Map<Long, Integer> loadUserSyncStateByUser(Set<Long> userIds) {
+		Map<Long, Integer> statusByUser = new LinkedHashMap<Long, Integer>();
+		if (userIds == null || userIds.isEmpty()) {
+			return statusByUser;
+		}
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		ensureUserSyncStateTable(jdbcTemplate);
+		List<Long> userIdList = new ArrayList<Long>(userIds);
+		for (int start = 0; start < userIdList.size(); start += COMMAND_DEDUPE_USER_CHUNK) {
+			int end = Math.min(start + COMMAND_DEDUPE_USER_CHUNK, userIdList.size());
+			List<Long> chunk = userIdList.subList(start, end);
+			String sql = "select USER_ID, LAST_SENT_STATUS from " + USER_SYNC_STATE_TABLE + " where USER_ID in ("
+					+ buildPlaceholders(chunk.size()) + ")";
+			List<Object> params = new ArrayList<Object>(chunk.size());
+			params.addAll(chunk);
+			List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, params.toArray());
+			for (Map<String, Object> row : rows) {
+				Long userId = parseLong(toText(row.get("USER_ID")));
+				Integer status = parseStatus(toText(row.get("LAST_SENT_STATUS")));
+				if (userId != null && status != null) {
+					statusByUser.put(userId, status);
+				}
+			}
+		}
+		return statusByUser;
+	}
+
+	private void saveUserSyncState(Map<Long, Integer> stateByUser) {
+		if (stateByUser == null || stateByUser.isEmpty()) {
+			return;
+		}
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		ensureUserSyncStateTable(jdbcTemplate);
+		List<Map.Entry<Long, Integer>> entries = new ArrayList<Map.Entry<Long, Integer>>(stateByUser.entrySet());
+		final String sql = "MERGE " + USER_SYNC_STATE_TABLE + " AS target "
+				+ "USING (SELECT ? AS USER_ID, ? AS LAST_SENT_STATUS) AS src "
+				+ "ON target.USER_ID = src.USER_ID "
+				+ "WHEN MATCHED THEN UPDATE SET LAST_SENT_STATUS = src.LAST_SENT_STATUS, LAST_UPDATED_AT = SYSDATETIME() "
+				+ "WHEN NOT MATCHED THEN INSERT (USER_ID, LAST_SENT_STATUS, LAST_UPDATED_AT) "
+				+ "VALUES (src.USER_ID, src.LAST_SENT_STATUS, SYSDATETIME());";
+		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				Map.Entry<Long, Integer> entry = entries.get(i);
+				ps.setLong(1, entry.getKey().longValue());
+				ps.setInt(2, normalizeEnableStatus(entry.getValue()));
+			}
+
+			@Override
+			public int getBatchSize() {
+				return entries.size();
+			}
+		});
+	}
+
+	private void ensureUserSyncStateTable(JdbcTemplate jdbcTemplate) {
+		if (userSyncStateTableEnsured) {
+			return;
+		}
+		String ddl = "IF OBJECT_ID('dbo." + USER_SYNC_STATE_TABLE + "', 'U') IS NULL "
+				+ "BEGIN "
+				+ "CREATE TABLE dbo." + USER_SYNC_STATE_TABLE + " ("
+				+ "USER_ID BIGINT NOT NULL PRIMARY KEY, "
+				+ "LAST_SENT_STATUS INT NOT NULL, "
+				+ "LAST_UPDATED_AT DATETIME2(0) NOT NULL DEFAULT SYSDATETIME()"
+				+ "); "
+				+ "END; "
+				+ "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_" + USER_SYNC_STATE_TABLE
+				+ "_UPDATED_AT' AND object_id = OBJECT_ID('dbo." + USER_SYNC_STATE_TABLE + "')) "
+				+ "BEGIN "
+				+ "CREATE INDEX IX_" + USER_SYNC_STATE_TABLE + "_UPDATED_AT ON dbo." + USER_SYNC_STATE_TABLE
+				+ " (LAST_UPDATED_AT DESC); "
+				+ "END;";
+		jdbcTemplate.execute(ddl);
+		userSyncStateTableEnsured = true;
 	}
 
 	private Map<String, Integer> loadLatestEnableStatusByDeviceUser(Set<Long> userIds, List<String> serials) {
@@ -543,11 +952,28 @@ public class DatabaseUserDeltaSyncService {
 		}
 		int online = 0;
 		for (String serial : serials) {
-			if (hasText(serial) && WebSocketPool.getDeviceSocketBySn(serial) != null) {
+			if (isDeviceOnline(serial)) {
 				online++;
 			}
 		}
 		return online;
+	}
+
+	private boolean isDeviceOnline(String serial) {
+		if (!hasText(serial)) {
+			return false;
+		}
+		if (WebSocketPool.getDeviceSocketBySn(serial) != null) {
+			return true;
+		}
+		String normalized = serial.trim();
+		for (String connectedSn : WebSocketPool.wsDevice.keySet()) {
+			if (connectedSn != null && normalized.equalsIgnoreCase(connectedSn.trim())
+					&& WebSocketPool.getDeviceSocketBySn(connectedSn) != null) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private long estimateDeviceDispatchSeconds(int commandsPerDevice) {
@@ -597,6 +1023,10 @@ public class DatabaseUserDeltaSyncService {
 		private int statusCommandsQueued;
 		private int deleteCommandsQueued;
 		private int totalCommandsQueued;
+		private int enabledUsers;
+		private int disabledUsers;
+		private int enableCommandsQueued;
+		private int disableCommandsQueued;
 		private int onlineDevices;
 		private long estimatedDeviceDispatchSeconds;
 		private long durationMs;
@@ -701,6 +1131,38 @@ public class DatabaseUserDeltaSyncService {
 			this.totalCommandsQueued = totalCommandsQueued;
 		}
 
+		public int getEnabledUsers() {
+			return enabledUsers;
+		}
+
+		public void setEnabledUsers(int enabledUsers) {
+			this.enabledUsers = enabledUsers;
+		}
+
+		public int getDisabledUsers() {
+			return disabledUsers;
+		}
+
+		public void setDisabledUsers(int disabledUsers) {
+			this.disabledUsers = disabledUsers;
+		}
+
+		public int getEnableCommandsQueued() {
+			return enableCommandsQueued;
+		}
+
+		public void setEnableCommandsQueued(int enableCommandsQueued) {
+			this.enableCommandsQueued = enableCommandsQueued;
+		}
+
+		public int getDisableCommandsQueued() {
+			return disableCommandsQueued;
+		}
+
+		public void setDisableCommandsQueued(int disableCommandsQueued) {
+			this.disableCommandsQueued = disableCommandsQueued;
+		}
+
 		public int getOnlineDevices() {
 			return onlineDevices;
 		}
@@ -757,4 +1219,5 @@ public class DatabaseUserDeltaSyncService {
 			this.finishedAt = finishedAt;
 		}
 	}
+
 }

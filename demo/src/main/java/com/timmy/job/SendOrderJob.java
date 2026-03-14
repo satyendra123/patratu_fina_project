@@ -27,9 +27,9 @@ import com.timmy.websocket.WebSocketPool;
 public class SendOrderJob extends Thread {
 	private static final Logger log = LoggerFactory.getLogger(SendOrderJob.class);
 
-	// Relay-only mode: block background retries for backup and stale opendoor commands.
+	// Keep only risky command types blocked from auto dispatch.
 	private static final Set<String> BLOCKED_SYNC_COMMANDS = new HashSet<String>(
-			Arrays.asList("getuserinfo", "getuserlist", "opendoor"));
+			Arrays.asList("opendoor"));
 	private static final int MAX_RETRY_COUNT = 3;
 	private static final long COMMAND_TIMEOUT_MS = 20 * 1000L;
 	private static final Pattern ENROLL_ID_PATTERN = Pattern.compile("\"enrollid\"\\s*:\\s*(\\d+)");
@@ -81,7 +81,8 @@ public class SendOrderJob extends Thread {
 								String payload = normalizePayloadForSend(nextToSend);
 								entry.getValue().getWebSocket().send(payload);
 								machineCommandMapper.updateCommandStatus(0, 1, new Date(), nextToSend.getId());
-								if ("enableuser".equals(nextToSend.getName()) || "deleteuser".equals(nextToSend.getName())) {
+								if ("enableuser".equals(nextToSend.getName()) || "deleteuser".equals(nextToSend.getName())
+										|| "setquestionnaire".equals(nextToSend.getName())) {
 									log.info("[SEND-ORDER] sent command id={} serial={} name={} payload={}",
 											nextToSend.getId(), nextToSend.getSerial(), nextToSend.getName(),
 											payload);
@@ -154,6 +155,7 @@ public class SendOrderJob extends Thread {
 		}
 
 		Map<String, Integer> latestEnableCmdIdByUser = findLatestEnablePendingByUser(inSending);
+		MachineCommand firstPriority = null;
 		MachineCommand firstNormal = null;
 		MachineCommand latestEnable = null;
 		for (int i = 0; i < inSending.size(); i++) {
@@ -170,6 +172,12 @@ public class SendOrderJob extends Thread {
 				markCommandSkipped(cmd);
 				continue;
 			}
+			if ("setquestionnaire".equals(cmd.getName())) {
+				if (firstPriority == null) {
+					firstPriority = cmd;
+				}
+				continue;
+			}
 			if ("enableuser".equals(cmd.getName())) {
 				latestEnable = cmd;
 				continue;
@@ -178,7 +186,10 @@ public class SendOrderJob extends Thread {
 				firstNormal = cmd;
 			}
 		}
-		return latestEnable != null ? latestEnable : firstNormal;
+		if (firstPriority != null) {
+			return firstPriority;
+		}
+		return firstNormal != null ? firstNormal : latestEnable;
 	}
 
 	private MachineCommand pickPendingRetry(List<MachineCommand> pendingCommands) {

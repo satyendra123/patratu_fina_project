@@ -22,4 +22,6 @@ public interface RecordsService {
 	    int updateByPrimaryKey(Records record);
 	    
 	    List<Records> selectAllRecords();
+
+	    List<Records> selectRecordsByKeyword(String keyword);
 }
