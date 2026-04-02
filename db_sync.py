@@ -1,19 +1,19 @@
 import time
 from datetime import datetime
-
 import pyodbc
 
 
 LOCAL_CONN_STR = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=localhost\\SQLEXPRESS;"
+    "SERVER=localhost,1433;"
     "DATABASE=IDSL_NTPC_CLIMS;"
-    "Trusted_Connection=yes;"
+    "UID=sa;"
+    "PWD=T@123;"
     "Encrypt=yes;"
     "TrustServerCertificate=yes;"
 )
 
-SOURCE_WORKMEN_MASTER = "[10.0.8.226].[CLIMS].[dbo].[Patratu_WorkmenMaster_IDSL]"
+SOURCE_WORKMEN_MASTER = "[10.0.8.226].[CLIMS].[dbo].[Patratu_WorkmenMaster]"
 SOURCE_DELETED_WORKMEN = "[10.0.8.226].[CLIMS].[dbo].[Patratu_DeletedWorkmen]"
 
 TARGET_SCHEMA = "dbo"
@@ -82,10 +82,10 @@ WITH LatestStatus AS (
         ROW_NUMBER() OVER (
             PARTITION BY {SOURCE_WORKMAN_ID_COLUMN}
             ORDER BY
-                CASE WHEN [last_update_date] IS NULL THEN 1 ELSE 0 END,
-                [last_update_date] DESC,
-                CASE WHEN [Record_Creation_Date] IS NULL THEN 1 ELSE 0 END,
-                [Record_Creation_Date] DESC
+                CASE WHEN [lastactivationdate] IS NULL THEN 1 ELSE 0 END,
+                [lastactivationdate] DESC,
+                CASE WHEN [lastdeactivationdate] IS NULL THEN 1 ELSE 0 END,
+                [lastdeactivationdate] DESC
         ) AS row_num
     FROM {SOURCE_WORKMEN_MASTER}
     WHERE {SOURCE_WORKMAN_ID_COLUMN} IS NOT NULL
