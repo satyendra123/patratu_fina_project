@@ -25,7 +25,7 @@
             <div class="col-md-12">
                 <button class="btn btn-default" id="back_log_btn">Back To LogRecords</button>
                 <button class="btn btn-primary" id="refresh_btn">Refresh</button>
-                <span id="source_info" style="margin-left: 15px; color: #337ab7;"></span>
+                <span id="source_info" style="display:none;"></span>
             </div>
         </div>
         <div class="row" style="margin-bottom: 10px;">
@@ -215,17 +215,7 @@
         }
 
         function build_source_info() {
-            var source = climsSourceMeta.source ? climsSourceMeta.source : "";
-            var deviceSn = climsSourceMeta.deviceSn ? climsSourceMeta.deviceSn : "";
-            var mappingMissing = climsSourceMeta.mappingMissing ? true : false;
-            var text = source ? ("Data Source: " + source) : "Data Source: N/A";
-            if (deviceSn) {
-                text += " | Device: " + deviceSn;
-            }
-            if (mappingMissing) {
-                text += " | NetWork mapping missing for selected device";
-            }
-            $("#source_info").text(text);
+            $("#source_info").text("");
         }
 
         function build_table(result) {

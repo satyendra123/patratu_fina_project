@@ -8,32 +8,34 @@ import com.timmy.serviceImpl.DatabaseUserDeltaSyncService;
 public class DeviceDeltaQueueSyncScheduler {
 
 	private static final String ENABLE_PROPERTY = "device.delta.sync.scheduler.enabled";
-	private static final String DAILY_CRON = "0 0 2 * * *";
+	private static final String CRON_EXPRESSION = "${FP_SCHEDULER_CRON:0 0 19 * * *}";
 	private static final String CRON_ZONE = "Asia/Kolkata";
 
 	@Autowired
 	private DatabaseUserDeltaSyncService databaseUserDeltaSyncService;
 
-	@Scheduled(cron = DAILY_CRON, zone = CRON_ZONE)
+	@Scheduled(cron = CRON_EXPRESSION, zone = CRON_ZONE)
 	public void syncDeviceDeltaQueue() {
 		if (!isSchedulerEnabled()) {
 			return;
 		}
 		try {
 			DatabaseUserDeltaSyncService.SyncResult result = databaseUserDeltaSyncService
-					.syncChangedStatusTransitionsByVerify("scheduler-2am");
+					.syncTodayUpdatedUsersByUpdDate("scheduler-cron");
 			if (result.isSuccess()) {
-				System.out.println("[DeviceDeltaQueueSyncScheduler] 2AM transition sync done. activeUsers="
-						+ result.getActiveUsers() + ", changedToEnable=" + result.getEnabledUsers()
-						+ ", changedToDisable=" + result.getDisabledUsers() + ", queued(total="
+				System.out.println("[DeviceDeltaQueueSyncScheduler] Cron direct sync done. todayUpdatedUsers="
+						+ result.getActiveUsers() + ", enableToday=" + result.getEnabledUsers()
+						+ ", disableToday=" + result.getDisabledUsers() + ", deletedToday="
+						+ result.getChangedDeletedUsers() + ", sent(total="
 						+ result.getTotalCommandsQueued() + ", enable=" + result.getEnableCommandsQueued()
-						+ ", disable=" + result.getDisableCommandsQueued() + "), devices=" + result.getDevices()
+						+ ", disable=" + result.getDisableCommandsQueued() + ", delete="
+						+ result.getDeleteCommandsQueued() + "), devices=" + result.getDevices()
 						+ ", onlineDevices=" + result.getOnlineDevices() + ", reason=" + result.getReason());
 			} else {
-				System.out.println("[DeviceDeltaQueueSyncScheduler] 2AM transition sync failed: " + result.getError());
+				System.out.println("[DeviceDeltaQueueSyncScheduler] Cron direct sync failed: " + result.getError());
 			}
 		} catch (Exception ex) {
-			System.out.println("[DeviceDeltaQueueSyncScheduler] 2AM transition sync exception: " + ex.getMessage());
+			System.out.println("[DeviceDeltaQueueSyncScheduler] Cron direct sync exception: " + ex.getMessage());
 		}
 	}
 

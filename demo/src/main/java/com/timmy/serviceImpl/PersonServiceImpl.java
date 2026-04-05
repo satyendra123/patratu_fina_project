@@ -3,16 +3,8 @@ package com.timmy.serviceImpl;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
-
-import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.timmy.entity.DeviceStatus;
@@ -20,9 +12,9 @@ import com.timmy.entity.EnrollInfo;
 import com.timmy.entity.MachineCommand;
 import com.timmy.entity.Person;
 import com.timmy.entity.UserInfo;
-import com.timmy.mapper.MachineCommandMapper;
 import com.timmy.mapper.PersonMapper;
 import com.timmy.service.EnrollInfoService;
+import com.timmy.service.MachineCommandService;
 import com.timmy.service.PersonService;
 import com.timmy.websocket.WebSocketPool;
 
@@ -41,10 +33,7 @@ public class PersonServiceImpl implements PersonService {
 	EnrollInfoService enrollInfoService;
 	
 	@Autowired
-	MachineCommandMapper machineCommandMapper;
-
-	@Autowired
-	DataSource dataSource;
+	MachineCommandService machineCommandService;
 	
 	@Override
 	public int updateByPrimaryKeySelective(Person record) {
@@ -132,7 +121,7 @@ public class PersonServiceImpl implements PersonService {
 			}
   		
     	 		
-  		machineCommandMapper.insert(machineCommand);
+  		machineCommandService.addMachineCommand(machineCommand);
     	  }else {
     		  
     		  StringBuilder sb=new StringBuilder();
@@ -152,7 +141,7 @@ public class PersonServiceImpl implements PersonService {
       		machineCommand.setGmtCrate(new Date());
       		machineCommand.setGmtModified(new Date());
       		machineCommand.setContent(sb.toString());
-  	    	machineCommandMapper.insert(machineCommand);
+  	    	machineCommandService.addMachineCommand(machineCommand);
     		  
     		  
     	  }
@@ -220,36 +209,16 @@ public class PersonServiceImpl implements PersonService {
 		if (commands == null || commands.isEmpty()) {
 			return 0;
 		}
-		final String sql = "insert into DEVICECMD (SLNO, DC_CMD, DC_DATE, DC_EXECDATE, DC_RES, DC_RESDATE, CMD_DESC, REF_ID, src_sno, DC_cmd_date, IS_DEL_EXECUTED) "
-				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-		int[] rows = jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				MachineCommand command = commands.get(i);
-				Timestamp createdAt = new Timestamp(
-						command.getGmtCrate() == null ? System.currentTimeMillis() : command.getGmtCrate().getTime());
-				Timestamp modifiedAt = new Timestamp(
-						command.getGmtModified() == null ? createdAt.getTime() : command.getGmtModified().getTime());
-				ps.setString(1, command.getSerial());
-				ps.setString(2, command.getContent());
-				ps.setTimestamp(3, createdAt);
-				ps.setNull(4, Types.TIMESTAMP);
-				ps.setString(5, "0");
-				ps.setNull(6, Types.TIMESTAMP);
-				ps.setString(7, "JAVA:" + (command.getName() == null ? "command" : command.getName()));
-				ps.setInt(8, command.getErrCount() == null ? 0 : command.getErrCount().intValue());
-				ps.setNull(9, Types.VARCHAR);
-				ps.setTimestamp(10, modifiedAt);
-				ps.setInt(11, 0);
+		int queued = 0;
+		for (int i = 0; i < commands.size(); i++) {
+			MachineCommand command = commands.get(i);
+			if (command == null) {
+				continue;
 			}
-
-			@Override
-			public int getBatchSize() {
-				return commands.size();
-			}
-		});
-		return rows == null ? 0 : rows.length;
+			machineCommandService.addMachineCommand(command);
+			queued++;
+		}
+		return queued;
 	}
       
       
@@ -266,6 +235,9 @@ public class PersonServiceImpl implements PersonService {
     	 DeviceStatus deviceStatus=WebSocketPool.getDeviceStatus(deviceSn);
     	 System.out.println("socket连接"+WebSocketPool.getDeviceSocketBySn(deviceSn));
     //	 WebSocketPool.sendMessageToAll(message);
+ 		if(deviceStatus == null || deviceStatus.getWebSocket() == null){
+ 			return;
+ 		}
  		if(deviceStatus.getStatus()==1){
  			//WebSocketPool.sendMessageToAll(message);
  			deviceStatus.setStatus(0);
@@ -306,7 +278,7 @@ public class PersonServiceImpl implements PersonService {
     		machineCommand.setGmtCrate(new Date());
     		machineCommand.setGmtModified(new Date());
     		
-    		machineCommandMapper.insert(machineCommand);
+    		machineCommandService.addMachineCommand(machineCommand);
 		}
 		
 		
@@ -356,7 +328,7 @@ public class PersonServiceImpl implements PersonService {
 			machineCommand.setGmtCrate(new Date());
 			machineCommand.setGmtModified(new Date());
 			
-			machineCommandMapper.insert(machineCommand);
+			machineCommandService.addMachineCommand(machineCommand);
 	    	 personMapper.deleteByPrimaryKey(enrollId);
 	    	 enrollInfoService.deleteByEnrollId(enrollId);
 	    	 	 
@@ -391,7 +363,7 @@ public class PersonServiceImpl implements PersonService {
     		machineCommand.setGmtCrate(new Date());
     		machineCommand.setGmtModified(new Date());
     		machineCommand.setContent(sb.toString());
-	    	machineCommandMapper.insert(machineCommand);
+	    	machineCommandService.addMachineCommand(machineCommand);
 	}
 
 	@Override

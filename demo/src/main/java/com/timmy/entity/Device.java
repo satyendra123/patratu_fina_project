@@ -9,6 +9,8 @@ public class Device {
 
     private String inOutMode;
 
+    private String locationName;
+
     public Integer getId() {
         return id;
     }
@@ -41,10 +43,18 @@ public class Device {
         this.inOutMode = inOutMode == null ? null : inOutMode.trim();
     }
 
+    public String getLocationName() {
+        return locationName;
+    }
+
+    public void setLocationName(String locationName) {
+        this.locationName = locationName == null ? null : locationName.trim();
+    }
+
 	@Override
 	public String toString() {
 		return "Device [id=" + id + ", serialNum=" + serialNum + ", status="
-				+ status + ", inOutMode=" + inOutMode + "]";
+				+ status + ", inOutMode=" + inOutMode + ", locationName=" + locationName + "]";
 	}
     
     

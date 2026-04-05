@@ -6,6 +6,7 @@
     <result column="serial_num" property="serialNum" jdbcType="VARCHAR" />
     <result column="status" property="status" jdbcType="INTEGER" />
     <result column="inout_mode" property="inOutMode" jdbcType="VARCHAR" />
+    <result column="location_name" property="locationName" jdbcType="VARCHAR" />
   </resultMap>
 
   <sql id="Device_Select_List">
@@ -15,7 +16,8 @@
     CASE
       WHEN NULLIF(LTRIM(RTRIM(nw.gate_value)), '') IS NULL THEN 'AUTO'
       ELSE UPPER(LTRIM(RTRIM(nw.gate_value)))
-    END AS inout_mode
+    END AS inout_mode,
+    ISNULL(NULLIF(LTRIM(RTRIM(nw.location_name)), ''), 'Unmapped') AS location_name
   </sql>
 
   <select id="findAllDevice" resultMap="BaseResultMap" >
@@ -35,7 +37,7 @@
       ORDER BY s.DI_ID DESC
     ) st
     OUTER APPLY (
-      SELECT TOP 1 GATE AS gate_value
+      SELECT TOP 1 GATE AS gate_value, NET_AREA AS location_name
       FROM NetWork n
       WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(ds.SLNO))
       ORDER BY n.ID DESC
@@ -60,7 +62,7 @@
       ORDER BY s.DI_ID DESC
     ) st
     OUTER APPLY (
-      SELECT TOP 1 GATE AS gate_value
+      SELECT TOP 1 GATE AS gate_value, NET_AREA AS location_name
       FROM NetWork n
       WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(ds.SLNO))
       ORDER BY n.ID DESC
@@ -85,7 +87,7 @@
       ORDER BY s.DI_ID DESC
     ) st
     OUTER APPLY (
-      SELECT TOP 1 GATE AS gate_value
+      SELECT TOP 1 GATE AS gate_value, NET_AREA AS location_name
       FROM NetWork n
       WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(ds.SLNO))
       ORDER BY n.ID DESC

@@ -20,6 +20,8 @@ public class InitializationListener implements ServletContextListener {
 		if (!INITIALIZED.compareAndSet(false, true)) {
 			return;
 		}
+		String bootToken = Long.toString(System.currentTimeMillis());
+		sce.getServletContext().setAttribute(SimpleAuthConfig.CONTEXT_BOOT_TOKEN_KEY, bootToken);
 		ApplicationContext act = WebApplicationContextUtils.getWebApplicationContext(sce.getServletContext());
 		if (act == null) {
 			INITIALIZED.set(false);

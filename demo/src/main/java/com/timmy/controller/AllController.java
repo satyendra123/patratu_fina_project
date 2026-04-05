@@ -1,9 +1,6 @@
 package com.timmy.controller;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -13,14 +10,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -42,6 +40,7 @@ import com.timmy.entity.PersonTemp;
 import com.timmy.entity.Records;
 import com.timmy.entity.UserInfo;
 import com.timmy.mapper.NetWorkMapper;
+import com.timmy.serviceImpl.DatabaseUserDeltaSyncService;
 import com.timmy.serviceImpl.UsernameDeltaSyncService;
 import com.timmy.util.ControllerBase;
 import com.timmy.websocket.WSServer;
@@ -60,6 +59,9 @@ public class AllController extends ControllerBase {
 
 	@Autowired
 	private UsernameDeltaSyncService usernameDeltaSyncService;
+
+	@Autowired
+	private DatabaseUserDeltaSyncService databaseUserDeltaSyncService;
 
 	/*
 	 * @Autowired EnrollInfoService enrollInfoService;
@@ -143,6 +145,11 @@ public class AllController extends ControllerBase {
 		return "schedulerStatus";
 	}
 
+	@RequestMapping(value = "/updateDataPage", method = RequestMethod.GET)
+	public String updateDataPage() {
+		return "updateData";
+	}
+
 	@RequestMapping(value = "/schedulerDailyStatus", method = RequestMethod.GET)
 	@ResponseBody
 	public Msg schedulerDailyStatus(@RequestParam(value = "days", defaultValue = "30") Integer days,
@@ -179,19 +186,28 @@ public class AllController extends ControllerBase {
 				safePn = 1;
 			}
 			int offset = (safePn - 1) * safePageSize;
-			String sql = "WITH daily AS ("
-					+ " SELECT CAST(STARTED_AT AS date) AS started_day, "
+			String sql = "WITH base AS ("
+					+ " SELECT "
+					+ " ID, STATUS, STARTED_AT, FINISHED_AT, "
+					+ " ISNULL(ACTIVE_USER, 0) AS ACTIVE_USER, "
+					+ " ISNULL(DISABLE_USER, 0) AS DISABLE_USER, "
+					+ " ISNULL(DELETED_USER, 0) AS DELETED_USER, "
+					+ " CAST(STARTED_AT AS date) AS started_day "
+					+ " FROM " + VERIFY_SCHEDULER_AUDIT_TABLE + " "
+					+ " WHERE STARTED_AT >= DATEADD(day, -(? - 1), CAST(GETDATE() AS date)) "
+					+ "), daily AS ("
+					+ " SELECT started_day, "
 					+ " COUNT(1) AS runCount, "
 					+ " SUM(CASE WHEN STATUS = 'SUCCESS' THEN 1 ELSE 0 END) AS successCount, "
 					+ " SUM(CASE WHEN STATUS = 'FAILED' THEN 1 ELSE 0 END) AS failedCount, "
-					+ " MAX(CASE WHEN STATUS = 'RUNNING' THEN 1 ELSE 0 END) AS runningCount, "
 					+ " MIN(STARTED_AT) AS firstStartedAt, "
-					+ " MAX(FINISHED_AT) AS lastFinishedAt, "
-					+ " SUM(ISNULL(ACTIVE_USER, 0)) AS enabledUsers, "
-					+ " SUM(ISNULL(DISABLE_USER, 0)) AS disabledUsers "
-					+ " FROM " + VERIFY_SCHEDULER_AUDIT_TABLE + " "
-					+ " WHERE STARTED_AT >= DATEADD(day, -(? - 1), CAST(GETDATE() AS date)) "
-					+ " GROUP BY CAST(STARTED_AT AS date) "
+					+ " MAX(FINISHED_AT) AS lastFinishedAt "
+					+ " FROM base "
+					+ " GROUP BY started_day "
+					+ "), latest AS ("
+					+ " SELECT started_day, STATUS, ACTIVE_USER, DISABLE_USER, DELETED_USER, "
+					+ " ROW_NUMBER() OVER (PARTITION BY started_day ORDER BY STARTED_AT DESC, ID DESC) AS rn "
+					+ " FROM base "
 					+ ") "
 					+ "SELECT CONVERT(VARCHAR(10), d.started_day, 120) AS runDate, "
 					+ " d.runCount AS runCount, "
@@ -199,15 +215,14 @@ public class AllController extends ControllerBase {
 					+ " d.failedCount AS failedCount, "
 					+ " CONVERT(VARCHAR(19), d.firstStartedAt, 120) AS firstStartedAt, "
 					+ " CONVERT(VARCHAR(19), d.lastFinishedAt, 120) AS lastFinishedAt, "
-					+ " d.enabledUsers AS enabledUsers, "
-					+ " d.disabledUsers AS disabledUsers, "
+					+ " l.ACTIVE_USER AS enabledUsers, "
+					+ " l.DISABLE_USER AS disabledUsers, "
+					+ " l.DELETED_USER AS deletedUsers, "
 					+ " CASE "
-					+ " WHEN ISNULL(d.runningCount, 0) > 0 THEN 'RUNNING' "
-					+ " WHEN ISNULL(d.successCount, 0) > 0 AND ISNULL(d.failedCount, 0) > 0 THEN 'PARTIAL' "
-					+ " WHEN ISNULL(d.failedCount, 0) > 0 THEN 'FAILED' "
-					+ " WHEN ISNULL(d.successCount, 0) > 0 THEN 'SUCCESS' "
-					+ " ELSE 'UNKNOWN' END AS dailyStatus "
+					+ " WHEN l.STATUS = 'SUCCESS' THEN 'SUCCESS' "
+					+ " ELSE 'FAILED' END AS dailyStatus "
 					+ "FROM daily d "
+					+ "LEFT JOIN latest l ON l.started_day = d.started_day AND l.rn = 1 "
 					+ "ORDER BY d.started_day DESC "
 					+ "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 			List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, Integer.valueOf(safeDays),
@@ -670,40 +685,16 @@ public class AllController extends ControllerBase {
 		if (commands == null || commands.isEmpty()) {
 			return 0;
 		}
-		final String sql = "insert into DEVICECMD (SLNO, DC_CMD, DC_DATE, DC_EXECDATE, DC_RES, DC_RESDATE, CMD_DESC, REF_ID, src_sno, DC_cmd_date, IS_DEL_EXECUTED) "
-				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-		int[] rows = jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				MachineCommand command = commands.get(i);
-				Timestamp createdAt = new Timestamp(
-						(command.getGmtCrate() == null ? System.currentTimeMillis() : command.getGmtCrate().getTime()));
-				Timestamp modifiedAt = new Timestamp((command.getGmtModified() == null ? createdAt.getTime()
-						: command.getGmtModified().getTime()));
-				ps.setString(1, command.getSerial());
-				ps.setString(2, command.getContent());
-				ps.setTimestamp(3, createdAt);
-				if (command.getRunTime() == null) {
-					ps.setNull(4, Types.TIMESTAMP);
-				} else {
-					ps.setTimestamp(4, new Timestamp(command.getRunTime().getTime()));
-				}
-				ps.setString(5, String.valueOf(command.getStatus() == null ? 0 : command.getStatus().intValue()));
-				ps.setNull(6, Types.TIMESTAMP);
-				ps.setString(7, "JAVA:" + (command.getName() == null ? "command" : command.getName()));
-				ps.setInt(8, command.getErrCount() == null ? 0 : command.getErrCount().intValue());
-				ps.setNull(9, Types.VARCHAR);
-				ps.setTimestamp(10, modifiedAt);
-				ps.setInt(11, (command.getSendStatus() != null && command.getSendStatus().intValue() == 1) ? 1 : 0);
+		int queued = 0;
+		for (int i = 0; i < commands.size(); i++) {
+			MachineCommand command = commands.get(i);
+			if (command == null) {
+				continue;
 			}
-
-			@Override
-			public int getBatchSize() {
-				return commands.size();
-			}
-		});
-		return rows == null ? 0 : rows.length;
+			machineComandService.addMachineCommand(command);
+			queued++;
+		}
+		return queued;
 	}
 
 	private static final class DatabaseSyncSummary {
@@ -723,15 +714,26 @@ public class AllController extends ControllerBase {
 	}
 
 	private DatabaseSyncSummary runDatabaseSyncNow() {
-		List<String> serials = getAllKnownDeviceSerials();
-		return runDatabaseSyncNow(serials);
+		return runDatabaseSyncNow(true);
+	}
+
+	private DatabaseSyncSummary runDatabaseSyncNow(boolean fullSync) {
+		return runDatabaseSyncNow(null, fullSync);
 	}
 
 	private DatabaseSyncSummary runDatabaseSyncNow(List<String> targetSerials) {
+		return runDatabaseSyncNow(targetSerials, true);
+	}
+
+	private DatabaseSyncSummary runDatabaseSyncNow(List<String> targetSerials, boolean fullSync) {
 		long startedAt = System.currentTimeMillis();
 		Set<String> serialSet = new LinkedHashSet<String>();
-		if (targetSerials != null) {
-			for (String serial : targetSerials) {
+		List<String> candidateSerials = targetSerials;
+		if (candidateSerials == null || candidateSerials.isEmpty()) {
+			candidateSerials = getAllKnownDeviceSerials();
+		}
+		if (candidateSerials != null) {
+			for (String serial : candidateSerials) {
 				if (hasText(serial)) {
 					serialSet.add(serial.trim());
 				}
@@ -764,8 +766,9 @@ public class AllController extends ControllerBase {
 			if (existingState == null) {
 				existingState = stateBySerial.get(normalizedSerial);
 			}
-			DatabaseSyncDeviceDetail detail = syncDeviceIncrementalByUserId(jdbcTemplate, normalizedSerial, existingState,
-					recordsByUser);
+			DatabaseSyncDeviceDetail detail = fullSync
+					? syncDeviceFullByUserId(jdbcTemplate, normalizedSerial, existingState, recordsByUser)
+					: syncDeviceIncrementalByUserId(jdbcTemplate, normalizedSerial, existingState, recordsByUser);
 			summary.deviceDetails.add(detail);
 			totalSetuserinfoQueued += detail.getQueuedSetuserinfo();
 			totalCleanAdminQueued += detail.getQueuedCleanAdmin();
@@ -785,9 +788,11 @@ public class AllController extends ControllerBase {
 		summary.estimatedDeviceDispatchSeconds = maxEstimatedDispatchSeconds;
 		summary.durationMs = System.currentTimeMillis() - startedAt;
 		if (summary.failedDevices > 0) {
-			summary.reason = "Some devices failed during incremental sync.";
+			summary.reason = fullSync ? "Some devices failed during full DB sync."
+					: "Some devices failed during incremental sync.";
 		} else if (summary.totalCommandsQueued == 0) {
-			summary.reason = "No incremental records found for target devices.";
+			summary.reason = fullSync ? "No registration records found for target devices."
+					: "No incremental records found for target devices.";
 		} else if (summary.onlineDevices <= 0) {
 			summary.reason = "Commands queued in DEVICECMD, but no websocket device is online right now.";
 		}
@@ -851,12 +856,17 @@ public class AllController extends ControllerBase {
 	}
 
 	private boolean triggerDatabaseSyncAsync(final String trigger) {
+		return triggerDatabaseSyncAsync(trigger, true);
+	}
+
+	private boolean triggerDatabaseSyncAsync(final String trigger, final boolean fullSync) {
 		if (!dbSyncRunning.compareAndSet(false, true)) {
 			log.warn("[DB-FULL-SYNC] trigger ignored because sync is already running. trigger={}", trigger);
 			return false;
 		}
+		String modeLabel = fullSync ? "Full image sync" : "Incremental sync";
 		dbSyncState = DB_SYNC_STATE_RUNNING;
-		dbSyncMessage = "Full image sync started by " + trigger;
+		dbSyncMessage = modeLabel + " started by " + trigger;
 		dbSyncStartedAtEpochMs = System.currentTimeMillis();
 		dbSyncFinishedAtEpochMs = 0L;
 		dbSyncDevices = 0;
@@ -881,7 +891,7 @@ public class AllController extends ControllerBase {
 			public void run() {
 				try {
 					log.info("[DB-FULL-SYNC] worker started. trigger={}", trigger);
-					DatabaseSyncSummary summary = runDatabaseSyncNow();
+					DatabaseSyncSummary summary = runDatabaseSyncNow(fullSync);
 					dbSyncDevices = summary.devices;
 					dbSyncOnlineDevices = summary.onlineDevices;
 					dbSyncActiveUsers = summary.activeUsers;
@@ -901,7 +911,7 @@ public class AllController extends ControllerBase {
 							: new ArrayList<DatabaseSyncDeviceDetail>(summary.deviceDetails);
 					dbSyncState = DB_SYNC_STATE_SUCCESS;
 					StringBuilder messageBuilder = new StringBuilder();
-					messageBuilder.append("Full image sync completed in ").append(summary.durationMs).append(" ms")
+					messageBuilder.append(modeLabel).append(" completed in ").append(summary.durationMs).append(" ms")
 							.append(", successDevices=").append(summary.successDevices)
 							.append(", failedDevices=").append(summary.failedDevices)
 							.append(", activeUsers=").append(summary.activeUsers)
@@ -1025,7 +1035,8 @@ public class AllController extends ControllerBase {
 		Map<Long, List<UserInfo>> grouped = new java.util.TreeMap<Long, List<UserInfo>>();
 		List<UserInfo> usersToSend = enrollInfoService.usersToSendDevice();
 		for (UserInfo info : usersToSend) {
-			if (info == null || info.getEnrollId() == null) {
+			if (info == null || info.getEnrollId() == null || info.getSourceId() == null
+					|| info.getSourceId().longValue() <= 0L) {
 				continue;
 			}
 			if (!isSupportedEnrollBackupNum(info.getBackupnum())) {
@@ -1059,37 +1070,37 @@ public class AllController extends ControllerBase {
 
 	private DatabaseSyncDeviceDetail syncDeviceIncrementalByUserId(JdbcTemplate jdbcTemplate, String serial,
 			DeviceSyncState existingState, Map<Long, List<UserInfo>> recordsByUser) {
+		return syncDeviceByUserId(jdbcTemplate, serial, existingState, recordsByUser, false);
+	}
+
+	private DatabaseSyncDeviceDetail syncDeviceFullByUserId(JdbcTemplate jdbcTemplate, String serial,
+			DeviceSyncState existingState, Map<Long, List<UserInfo>> recordsByUser) {
+		return syncDeviceByUserId(jdbcTemplate, serial, existingState, recordsByUser, true);
+	}
+
+	private DatabaseSyncDeviceDetail syncDeviceByUserId(JdbcTemplate jdbcTemplate, String serial,
+			DeviceSyncState existingState, Map<Long, List<UserInfo>> recordsByUser, boolean fullSync) {
 		DatabaseSyncDeviceDetail detail = new DatabaseSyncDeviceDetail();
 		detail.setSerial(serial);
 		detail.setOnline(isDeviceOnline(serial));
 		long lastSyncedUserId = existingState == null ? 0L : Math.max(0L, existingState.lastSyncUserId);
-		detail.setLastSyncedUserIdBefore(lastSyncedUserId);
+		long syncCursorBefore = fullSync ? 0L : lastSyncedUserId;
+		detail.setLastSyncedUserIdBefore(syncCursorBefore);
 		Date startedAt = new Date();
-		markDeviceSyncRunning(jdbcTemplate, serial, lastSyncedUserId, startedAt);
+		markDeviceSyncRunning(jdbcTemplate, serial, syncCursorBefore, startedAt, fullSync);
 		try {
 			int pendingBefore = countPendingSetUserInfoCommands(jdbcTemplate, serial);
 			detail.setPendingBefore(pendingBefore);
 			detail.setClearedPending(0);
 
-			List<UserInfo> deltaRecords = collectDeltaEnrollRecords(recordsByUser, lastSyncedUserId);
-			int deltaUsers = countDistinctUsers(deltaRecords);
-			detail.setDeltaUserCount(deltaUsers);
+			List<UserInfo> recordsToQueue = fullSync ? collectAllEnrollRecords(recordsByUser)
+					: collectDeltaEnrollRecords(recordsByUser, syncCursorBefore);
+			int queuedUsers = countDistinctUsers(recordsToQueue);
+			detail.setDeltaUserCount(queuedUsers);
 
-			boolean firstRunForDevice = existingState == null || !hasText(existingState.lastSyncStatus)
-					|| "NEVER".equalsIgnoreCase(existingState.lastSyncStatus);
 			int queuedCleanAdmin = 0;
-			if (firstRunForDevice) {
-				queueCleanAdminCommand(serial);
-				queuedCleanAdmin = 1;
-			}
-			int queuedSetuserinfo = queueSetUserInfoRecordsToDevice(deltaRecords, serial);
-			long lastSyncedUserIdAfter = lastSyncedUserId;
-			for (UserInfo deltaRecord : deltaRecords) {
-				if (deltaRecord != null && deltaRecord.getEnrollId() != null
-						&& deltaRecord.getEnrollId().longValue() > lastSyncedUserIdAfter) {
-					lastSyncedUserIdAfter = deltaRecord.getEnrollId().longValue();
-				}
-			}
+			int queuedSetuserinfo = queueSetUserInfoRecordsToDevice(recordsToQueue, serial);
+			long lastSyncedUserIdAfter = syncCursorBefore;
 			detail.setLastSyncedUserIdAfter(lastSyncedUserIdAfter);
 			detail.setQueuedSetuserinfo(queuedSetuserinfo);
 			detail.setQueuedCleanAdmin(queuedCleanAdmin);
@@ -1105,9 +1116,12 @@ public class AllController extends ControllerBase {
 			detail.setLastSyncAt(formatDateTime(finishedAt));
 			String message;
 			if (queuedSetuserinfo == 0) {
-				message = "No incremental records found.";
+				message = fullSync ? "No registration records found." : "No incremental records found.";
 			} else {
-				message = "Queued " + queuedSetuserinfo + " setuserinfo commands for " + deltaUsers + " users.";
+				message = "Queued " + queuedSetuserinfo + " setuserinfo commands for " + queuedUsers + " users.";
+				if (fullSync) {
+					message += " (full DB sync).";
+				}
 			}
 			detail.setSyncMessage(message);
 			markDeviceSyncFinished(jdbcTemplate, serial, true, message, null, lastSyncedUserIdAfter, queuedSetuserinfo,
@@ -1116,13 +1130,30 @@ public class AllController extends ControllerBase {
 			String errorMessage = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
 			detail.setSyncStatus(DB_SYNC_STATE_FAILED);
 			detail.setSyncMessage(errorMessage);
-			detail.setLastSyncedUserIdAfter(lastSyncedUserId);
+			detail.setLastSyncedUserIdAfter(syncCursorBefore);
 			Date finishedAt = new Date();
 			detail.setLastSyncAt(formatDateTime(finishedAt));
-			markDeviceSyncFinished(jdbcTemplate, serial, false, "Incremental sync failed.", errorMessage, lastSyncedUserId,
-					detail.getQueuedSetuserinfo(), detail.getQueuedCleanAdmin(), startedAt, finishedAt);
+			markDeviceSyncFinished(jdbcTemplate, serial, false, fullSync ? "Full sync failed." : "Incremental sync failed.",
+					errorMessage, syncCursorBefore, detail.getQueuedSetuserinfo(), detail.getQueuedCleanAdmin(), startedAt,
+					finishedAt);
 		}
 		return detail;
+	}
+
+	private List<UserInfo> collectAllEnrollRecords(Map<Long, List<UserInfo>> recordsByUser) {
+		List<UserInfo> all = new ArrayList<UserInfo>();
+		if (recordsByUser == null || recordsByUser.isEmpty()) {
+			return all;
+		}
+		for (Map.Entry<Long, List<UserInfo>> entry : recordsByUser.entrySet()) {
+			List<UserInfo> records = entry.getValue();
+			if (records == null || records.isEmpty()) {
+				continue;
+			}
+			all.addAll(records);
+		}
+		sortRecordsBySourceId(all);
+		return all;
 	}
 
 	private List<UserInfo> collectDeltaEnrollRecords(Map<Long, List<UserInfo>> recordsByUser, long lastSyncedUserId) {
@@ -1131,17 +1162,53 @@ public class AllController extends ControllerBase {
 			return delta;
 		}
 		for (Map.Entry<Long, List<UserInfo>> entry : recordsByUser.entrySet()) {
-			Long userId = entry.getKey();
-			if (userId == null || userId.longValue() <= lastSyncedUserId) {
-				continue;
-			}
 			List<UserInfo> records = entry.getValue();
 			if (records == null || records.isEmpty()) {
 				continue;
 			}
-			delta.addAll(records);
+			for (UserInfo record : records) {
+				if (record == null || record.getSourceId() == null
+						|| record.getSourceId().longValue() <= lastSyncedUserId) {
+					continue;
+				}
+				delta.add(record);
+			}
 		}
+		sortRecordsBySourceId(delta);
 		return delta;
+	}
+
+	private long resolveMaxEnrollId(List<UserInfo> records, long defaultValue) {
+		long maxUserId = defaultValue;
+		if (records == null || records.isEmpty()) {
+			return maxUserId;
+		}
+		for (UserInfo record : records) {
+			if (record != null && record.getSourceId() != null
+					&& record.getSourceId().longValue() > maxUserId) {
+				maxUserId = record.getSourceId().longValue();
+			}
+		}
+		return maxUserId;
+	}
+
+	private void sortRecordsBySourceId(List<UserInfo> records) {
+		if (records == null || records.size() <= 1) {
+			return;
+		}
+		java.util.Collections.sort(records, new java.util.Comparator<UserInfo>() {
+			@Override
+			public int compare(UserInfo left, UserInfo right) {
+				long leftId = left == null || left.getSourceId() == null ? Long.MAX_VALUE : left.getSourceId().longValue();
+				long rightId = right == null || right.getSourceId() == null ? Long.MAX_VALUE : right.getSourceId().longValue();
+				return Long.compare(leftId, rightId);
+			}
+		});
+	}
+
+	private boolean isFirstRunForDevice(DeviceSyncState existingState) {
+		return existingState == null || !hasText(existingState.lastSyncStatus)
+				|| "NEVER".equalsIgnoreCase(existingState.lastSyncStatus);
 	}
 
 	private int countDistinctUsers(List<UserInfo> records) {
@@ -1181,7 +1248,7 @@ public class AllController extends ControllerBase {
 	}
 
 	private MachineCommand buildSetUserInfoCommand(UserInfo info, String deviceSn) {
-		if (info == null || info.getEnrollId() == null || !hasText(deviceSn)) {
+		if (info == null || info.getEnrollId() == null || info.getSourceId() == null || !hasText(deviceSn)) {
 			return null;
 		}
 		int backupNum = info.getBackupnum();
@@ -1197,8 +1264,14 @@ public class AllController extends ControllerBase {
 		command.setGmtCrate(new Date());
 		command.setGmtModified(new Date());
 		int safeAdmin = sanitizeAdminForDevice(info.getEnrollId(), Integer.valueOf(info.getAdmin()));
-		command.setContent(buildSetUserInfoPayload(info.getEnrollId(), info.getName(), backupNum, safeAdmin, info.getRecord()));
+		String payload = buildSetUserInfoPayload(info.getEnrollId(), info.getName(), backupNum, safeAdmin,
+				info.getRecord());
+		command.setContent(buildSetUserInfoCommandEnvelope(info.getSourceId().longValue(), payload));
 		return command;
+	}
+
+	private String buildSetUserInfoCommandEnvelope(long sourceId, String payload) {
+		return "{\"meta\":{\"sourceRowId\":" + sourceId + "},\"payload\":" + payload + "}";
 	}
 
 	private String buildSetUserInfoPayload(Long enrollId, String name, int backupNum, int admin, String record) {
@@ -1275,10 +1348,11 @@ public class AllController extends ControllerBase {
 		return truncate(message, 1800);
 	}
 
-	private void markDeviceSyncRunning(JdbcTemplate jdbcTemplate, String serial, long lastSyncedUserId, Date startedAt) {
+	private void markDeviceSyncRunning(JdbcTemplate jdbcTemplate, String serial, long lastSyncedUserId, Date startedAt,
+			boolean fullSync) {
 		ensureDeviceUserSyncStateTable(jdbcTemplate);
 		String status = DB_SYNC_STATE_RUNNING;
-		String message = safeDeviceSyncMessage("Incremental sync running.");
+		String message = safeDeviceSyncMessage(fullSync ? "Full DB sync running." : "Incremental sync running.");
 		int updated = jdbcTemplate.update(
 				"UPDATE " + DEVICE_USER_SYNC_STATE_TABLE
 						+ " SET LAST_SYNC_STATUS = ?, LAST_SYNC_STARTED_AT = ?, LAST_SYNC_MESSAGE = ?, UPDATED_AT = SYSDATETIME() "
@@ -1979,6 +2053,9 @@ public class AllController extends ControllerBase {
 		if (!hasText(normalizedSn)) {
 			return Msg.fail().add("error", "deviceSn is required.");
 		}
+		if (deviceService.selectDeviceBySerialNum(normalizedSn) == null) {
+			return Msg.fail().add("error", "Selected device not found in DEVICEINFO: " + normalizedSn);
+		}
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 		ensureDeviceUserSyncStateTable(jdbcTemplate);
 		Map<Long, List<UserInfo>> recordsByUser = buildEnrollRecordsByUser();
@@ -1988,17 +2065,30 @@ public class AllController extends ControllerBase {
 		if (existingState == null) {
 			existingState = stateBySerial.get(normalizedSn);
 		}
-		long lastSyncedUserIdBefore = existingState == null ? 0L : Math.max(0L, existingState.lastSyncUserId);
-		List<UserInfo> deltaRecords = collectDeltaEnrollRecords(recordsByUser, lastSyncedUserIdBefore);
-		int deltaUsers = countDistinctUsers(deltaRecords);
+		boolean fullSync = existingState == null || existingState.lastSyncUserId <= 0L;
+		long resumeFromUserId = existingState == null ? 0L : Math.max(0L, existingState.lastSyncUserId);
+		int pendingBefore = countPendingSetUserInfoCommands(jdbcTemplate, normalizedSn);
+		if (pendingBefore > 0) {
+			return Msg.fail()
+					.add("error",
+							"Pending setuserinfo commands already exist for selected device. Clear or wait before starting another sync.")
+					.add("deviceSn", normalizedSn)
+					.add("pendingBefore", pendingBefore)
+					.add("syncMode", fullSync ? "FULL" : "INCREMENTAL")
+					.add("resumeFromUserId", Long.valueOf(resumeFromUserId))
+					.add("resumeFromRowId", Long.valueOf(resumeFromUserId));
+		}
+		List<UserInfo> recordsToQueue = fullSync ? collectAllEnrollRecords(recordsByUser)
+				: collectDeltaEnrollRecords(recordsByUser, resumeFromUserId);
+		int queuedUsers = countDistinctUsers(recordsToQueue);
 		int totalRecords = countTotalEnrollRecords(recordsByUser);
 
 		int faceRecords = 0;
 		int imageRecords = 0;
 		int passwordRecords = 0;
 		int cardRecords = 0;
-		for (int i = 0; i < deltaRecords.size(); i++) {
-			UserInfo enrollInfo = deltaRecords.get(i);
+		for (int i = 0; i < recordsToQueue.size(); i++) {
+			UserInfo enrollInfo = recordsToQueue.get(i);
 			if (enrollInfo == null) {
 				continue;
 			}
@@ -2014,8 +2104,9 @@ public class AllController extends ControllerBase {
 			}
 		}
 
-		DatabaseSyncDeviceDetail detail = syncDeviceIncrementalByUserId(jdbcTemplate, normalizedSn, existingState,
-				recordsByUser);
+		DatabaseSyncDeviceDetail detail = fullSync
+				? syncDeviceFullByUserId(jdbcTemplate, normalizedSn, existingState, recordsByUser)
+				: syncDeviceIncrementalByUserId(jdbcTemplate, normalizedSn, existingState, recordsByUser);
 		int activeUsers = recordsByUser.size();
 		long estimatedSeconds = detail.getEstimatedDispatchSeconds();
 		long estimatedMinutes = (long) Math.ceil(estimatedSeconds / 60.0d);
@@ -2030,20 +2121,23 @@ public class AllController extends ControllerBase {
 		}
 		Msg response = DB_SYNC_STATE_FAILED.equals(detail.getSyncStatus()) ? Msg.fail() : Msg.success();
 		response.add("deviceSn", normalizedSn).add("activeUsers", activeUsers).add("totalRecords", totalRecords)
-				.add("deltaUsers", deltaUsers).add("queuedRecords", detail.getQueuedSetuserinfo())
-				.add("deltaRecords", deltaRecords.size()).add("imageRecords", imageRecords).add("faceRecords", faceRecords)
+				.add("queuedUsers", queuedUsers).add("queuedRecords", detail.getQueuedSetuserinfo())
+				.add("queuedCount", recordsToQueue.size())
+				.add("imageRecords", imageRecords).add("faceRecords", faceRecords)
 				.add("passwordRecords", passwordRecords).add("cardRecords", cardRecords)
 				.add("pendingBefore", detail.getPendingBefore()).add("clearedPending", detail.getClearedPending())
 				.add("pendingAfter", detail.getPendingAfter())
 				.add("cleanAdminQueued", detail.getQueuedCleanAdmin() > 0)
 				.add("syncStatus", detail.getSyncStatus()).add("syncMessage", detail.getSyncMessage())
 				.add("lastSyncAt", detail.getLastSyncAt())
-				.add("lastSyncedUserIdBefore", detail.getLastSyncedUserIdBefore())
-				.add("lastSyncedUserIdAfter", detail.getLastSyncedUserIdAfter())
+				.add("syncMode", fullSync ? "FULL" : "INCREMENTAL")
+				.add("resumeFromUserId", Long.valueOf(resumeFromUserId))
+				.add("resumeFromRowId", Long.valueOf(resumeFromUserId))
 				.add("estimatedDispatchSeconds", estimatedSeconds).add("estimatedDispatchMinutes", estimatedMinutes)
 				.add("dispatchRatePerSecond", detail.getDispatchRatePerSecond())
 				.add("dispatchRatePerMinute", toOneDecimal(detail.getDispatchRatePerSecond() * 60.0d))
-				.add("note", "Selected device incremental sync queued from last synced user id.");
+				.add("note", fullSync ? "Selected device full DB registration sync queued."
+						: "Selected device incremental registration sync queued from next record id.");
 		if (deviceSyncState != null) {
 			response.add("deviceSyncState", deviceSyncState);
 		}
@@ -2406,134 +2500,139 @@ public class AllController extends ControllerBase {
 			return Msg.fail().add("error", "From datetime must be before To datetime.");
 		}
 
+		boolean hasActiveFilters = hasActiveLatestRecordFilters(normalizedSn, normalizedKeyword, normalizedFromTime,
+				normalizedToTime);
+		boolean requestedFilterMode = filterMode;
+		filterMode = requestedFilterMode && hasActiveFilters;
+
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-		if (filterMode) {
-			String fromClause = " FROM ATTLOG A " + "LEFT JOIN ("
-					+ "SELECT ID, NAME, ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn "
-					+ "FROM BIO_USERMAST WHERE ISNULL(ISDELETED, 0) = 0"
-					+ ") U ON U.rn = 1 AND LTRIM(RTRIM(U.ID)) = LTRIM(RTRIM(A.USER_CODE))";
-			String whereClause = " WHERE 1 = 1";
-			List<Object> whereParams = new ArrayList<Object>();
-			if (!normalizedSn.isEmpty()) {
-				whereClause += " AND LTRIM(RTRIM(ISNULL(A.SLNO, ''))) = LTRIM(RTRIM(?))";
-				whereParams.add(normalizedSn);
-			}
-			if (!normalizedKeyword.isEmpty()) {
-				whereClause += " AND (CHARINDEX(?, ISNULL(A.USER_CODE, '')) > 0 OR CHARINDEX(?, ISNULL(U.NAME, '')) > 0)";
-				whereParams.add(normalizedKeyword);
-				whereParams.add(normalizedKeyword);
-			}
-			if (normalizedFromTime != null) {
-				whereClause += " AND A.ATT_DATETIME >= CONVERT(DATETIME, ?, 120)";
-				whereParams.add(normalizedFromTime);
-			}
-			if (normalizedToTime != null) {
-				whereClause += " AND A.ATT_DATETIME <= CONVERT(DATETIME, ?, 120)";
-				whereParams.add(normalizedToTime);
+		try {
+			if (filterMode) {
+				String fromClause = " FROM ATTLOG A " + "LEFT JOIN ("
+						+ "SELECT ID, NAME, ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn "
+						+ "FROM BIO_USERMAST WHERE ISNULL(ISDELETED, 0) = 0"
+						+ ") U ON U.rn = 1 AND LTRIM(RTRIM(U.ID)) = LTRIM(RTRIM(A.USER_CODE))";
+				String whereClause = " WHERE 1 = 1";
+				List<Object> whereParams = new ArrayList<Object>();
+				if (!normalizedSn.isEmpty()) {
+					whereClause += " AND LTRIM(RTRIM(ISNULL(A.SLNO, ''))) = LTRIM(RTRIM(?))";
+					whereParams.add(normalizedSn);
+				}
+				if (!normalizedKeyword.isEmpty()) {
+					whereClause += " AND (CHARINDEX(?, ISNULL(A.USER_CODE, '')) > 0 OR CHARINDEX(?, ISNULL(U.NAME, '')) > 0)";
+					whereParams.add(normalizedKeyword);
+					whereParams.add(normalizedKeyword);
+				}
+				if (normalizedFromTime != null) {
+					whereClause += " AND A.ATT_DATETIME >= CONVERT(DATETIME, ?, 120)";
+					whereParams.add(normalizedFromTime);
+				}
+				if (normalizedToTime != null) {
+					whereClause += " AND A.ATT_DATETIME <= CONVERT(DATETIME, ?, 120)";
+					whereParams.add(normalizedToTime);
+				}
+
+				int effectivePageNum = safePageNum;
+				List<Map<String, Object>> rows = queryFilteredLatestRecordRows(jdbcTemplate, fromClause, whereClause,
+						whereParams, effectivePageNum, safePageSize);
+				int totalMatched = extractTotalMatched(rows);
+				if (rows.isEmpty() && effectivePageNum > 1) {
+					Integer totalMatchedObj = jdbcTemplate.queryForObject("SELECT COUNT(1) " + fromClause + whereClause,
+							whereParams.toArray(), Integer.class);
+					totalMatched = totalMatchedObj == null ? 0 : totalMatchedObj.intValue();
+					int totalPages = totalMatched <= 0 ? 0 : ((totalMatched + safePageSize - 1) / safePageSize);
+					if (totalPages > 0 && effectivePageNum > totalPages) {
+						effectivePageNum = totalPages;
+						rows = queryFilteredLatestRecordRows(jdbcTemplate, fromClause, whereClause, whereParams,
+								effectivePageNum, safePageSize);
+						int refreshedTotalMatched = extractTotalMatched(rows);
+						if (refreshedTotalMatched > 0) {
+							totalMatched = refreshedTotalMatched;
+						}
+					}
+				}
+
+				int totalPages = totalMatched <= 0 ? 0 : ((totalMatched + safePageSize - 1) / safePageSize);
+				if (totalPages > 0 && effectivePageNum > totalPages) {
+					effectivePageNum = totalPages;
+				}
+				if (effectivePageNum < 1) {
+					effectivePageNum = 1;
+				}
+
+				List<Records> records = mapLatestRecordRows(rows);
+				applyProfileImageFallback(records, jdbcTemplate);
+				Integer latestRecordId = records.isEmpty() ? null : Integer.valueOf(records.get(0).getId());
+				return Msg.success().add("records", records).add("count", Integer.valueOf(records.size()))
+						.add("pn", Integer.valueOf(effectivePageNum)).add("pageSize", Integer.valueOf(safePageSize))
+						.add("totalMatched", Integer.valueOf(totalMatched)).add("totalPages", Integer.valueOf(totalPages))
+						.add("applyFilter", Boolean.TRUE).add("limit", Integer.valueOf(safeLimit))
+						.add("latestRecordId", latestRecordId).add("deviceSn", normalizedSn).add("keyword", normalizedKeyword)
+						.add("fromTime", normalizedFromTime).add("toTime", normalizedToTime);
 			}
 
-			Integer totalMatchedObj = jdbcTemplate.queryForObject("SELECT COUNT(1) " + fromClause + whereClause,
-					whereParams.toArray(), Integer.class);
-			int totalMatched = totalMatchedObj == null ? 0 : totalMatchedObj.intValue();
-			int totalPages = totalMatched <= 0 ? 0 : ((totalMatched + safePageSize - 1) / safePageSize);
-			int effectivePageNum = safePageNum;
-			if (totalPages > 0 && effectivePageNum > totalPages) {
-				effectivePageNum = totalPages;
-			}
-			if (effectivePageNum < 1) {
-				effectivePageNum = 1;
-			}
+			List<Map<String, Object>> rows;
+			if (normalizedKeyword.isEmpty()) {
+				String whereClause = " WHERE 1 = 1";
+				List<Object> whereParams = new ArrayList<Object>();
+				if (!normalizedSn.isEmpty()) {
+					whereClause += " AND LTRIM(RTRIM(ISNULL(A.SLNO, ''))) = LTRIM(RTRIM(?))";
+					whereParams.add(normalizedSn);
+				}
+				if (normalizedFromTime != null) {
+					whereClause += " AND A.ATT_DATETIME >= CONVERT(DATETIME, ?, 120)";
+					whereParams.add(normalizedFromTime);
+				}
+				if (normalizedToTime != null) {
+					whereClause += " AND A.ATT_DATETIME <= CONVERT(DATETIME, ?, 120)";
+					whereParams.add(normalizedToTime);
+				}
 
-			List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
-			if (totalMatched > 0) {
-				int offset = (effectivePageNum - 1) * safePageSize;
-				String dataSql = "SELECT " + "CONVERT(INT, A.ATT_ID) AS id, "
-						+ "CASE WHEN ISNUMERIC(A.USER_CODE) = 1 THEN CONVERT(BIGINT, A.USER_CODE) ELSE NULL END AS enrollId, "
-						+ "CONVERT(VARCHAR(19), A.ATT_DATETIME, 120) AS recordsTime, "
-						+ "ISNULL(CASE WHEN ISNUMERIC(A.COL2) = 1 THEN CONVERT(INT, A.COL2) ELSE NULL END, 0) AS mode, "
-						+ "ISNULL(CASE WHEN ISNUMERIC(A.INOUT_ID) = 1 THEN CONVERT(INT, A.INOUT_ID) ELSE NULL END, 0) AS intout, "
-						+ "ISNULL(CASE WHEN ISNUMERIC(A.COL3) = 1 THEN CONVERT(INT, A.COL3) ELSE NULL END, 0) AS event, "
-						+ "ISNULL(U.NAME, '') AS userName, " + "ISNULL(A.SLNO, '') AS deviceSerialNum, "
-						+ "ISNULL(CASE WHEN ISNUMERIC(A.COL5) = 1 THEN CONVERT(FLOAT, A.COL5) ELSE NULL END, 0) AS temperature, "
-						+ "ISNULL(A.COL6, '') AS image " + fromClause + whereClause
-						+ " ORDER BY A.ATT_DATETIME DESC, A.ATT_ID DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-				List<Object> dataParams = new ArrayList<Object>(whereParams);
-				dataParams.add(Integer.valueOf(offset));
-				dataParams.add(Integer.valueOf(safePageSize));
+				// Fast path: fetch only latest rows first.
+				String dataSql = "WITH LatestLogs AS (" + "SELECT TOP (?) "
+						+ "A.ATT_ID, A.USER_CODE, LTRIM(RTRIM(ISNULL(A.USER_CODE, ''))) AS USER_CODE_TRIM, "
+						+ "A.ATT_DATETIME, A.COL2, A.INOUT_ID, A.COL3, A.SLNO, A.COL5, A.COL6 "
+						+ "FROM ATTLOG A " + whereClause + " ORDER BY A.ATT_DATETIME DESC, A.ATT_ID DESC" + ") " + "SELECT "
+						+ "CONVERT(INT, L.ATT_ID) AS id, "
+						+ "ISNULL(L.USER_CODE, '') AS userCodeRaw, "
+						+ "ISNULL(L.USER_CODE_TRIM, '') AS userCodeTrim, "
+						+ "CASE WHEN ISNUMERIC(L.USER_CODE) = 1 THEN CONVERT(BIGINT, L.USER_CODE) ELSE NULL END AS enrollId, "
+						+ "CONVERT(VARCHAR(19), L.ATT_DATETIME, 120) AS recordsTime, "
+						+ "ISNULL(CASE WHEN ISNUMERIC(L.COL2) = 1 THEN CONVERT(INT, L.COL2) ELSE NULL END, 0) AS mode, "
+						+ "ISNULL(CASE WHEN ISNUMERIC(L.INOUT_ID) = 1 THEN CONVERT(INT, L.INOUT_ID) ELSE NULL END, 0) AS intout, "
+						+ "ISNULL(CASE WHEN ISNUMERIC(L.COL3) = 1 THEN CONVERT(INT, L.COL3) ELSE NULL END, 0) AS event, "
+						+ "ISNULL(L.SLNO, '') AS deviceSerialNum, "
+						+ "ISNULL(CASE WHEN ISNUMERIC(L.COL5) = 1 THEN CONVERT(FLOAT, L.COL5) ELSE NULL END, 0) AS temperature, "
+						+ "ISNULL(L.COL6, '') AS image " + "FROM LatestLogs L "
+						+ "ORDER BY L.ATT_DATETIME DESC, L.ATT_ID DESC";
+				List<Object> dataParams = new ArrayList<Object>();
+				dataParams.add(Integer.valueOf(safeLimit));
+				dataParams.addAll(whereParams);
 				rows = jdbcTemplate.queryForList(dataSql, dataParams.toArray());
-			}
-
-			List<Records> records = mapLatestRecordRows(rows);
-			applyProfileImageFallback(records, jdbcTemplate);
-			Integer latestRecordId = records.isEmpty() ? null : Integer.valueOf(records.get(0).getId());
-			return Msg.success().add("records", records).add("count", Integer.valueOf(records.size()))
-					.add("pn", Integer.valueOf(effectivePageNum)).add("pageSize", Integer.valueOf(safePageSize))
-					.add("totalMatched", Integer.valueOf(totalMatched)).add("totalPages", Integer.valueOf(totalPages))
-					.add("applyFilter", Boolean.TRUE).add("limit", Integer.valueOf(safeLimit))
-					.add("latestRecordId", latestRecordId).add("deviceSn", normalizedSn).add("keyword", normalizedKeyword)
-					.add("fromTime", normalizedFromTime).add("toTime", normalizedToTime);
-		}
-
-		List<Map<String, Object>> rows;
-		if (normalizedKeyword.isEmpty()) {
-			String whereClause = " WHERE 1 = 1";
-			List<Object> whereParams = new ArrayList<Object>();
-			if (!normalizedSn.isEmpty()) {
-				whereClause += " AND LTRIM(RTRIM(ISNULL(A.SLNO, ''))) = LTRIM(RTRIM(?))";
-				whereParams.add(normalizedSn);
-			}
-			if (normalizedFromTime != null) {
-				whereClause += " AND A.ATT_DATETIME >= CONVERT(DATETIME, ?, 120)";
-				whereParams.add(normalizedFromTime);
-			}
-			if (normalizedToTime != null) {
-				whereClause += " AND A.ATT_DATETIME <= CONVERT(DATETIME, ?, 120)";
-				whereParams.add(normalizedToTime);
-			}
-
-			// Fast path: fetch only latest rows first.
-			String dataSql = "WITH LatestLogs AS (" + "SELECT TOP (?) "
-					+ "A.ATT_ID, A.USER_CODE, LTRIM(RTRIM(ISNULL(A.USER_CODE, ''))) AS USER_CODE_TRIM, "
-					+ "A.ATT_DATETIME, A.COL2, A.INOUT_ID, A.COL3, A.SLNO, A.COL5, A.COL6 "
-					+ "FROM ATTLOG A " + whereClause + " ORDER BY A.ATT_DATETIME DESC, A.ATT_ID DESC" + ") " + "SELECT "
-					+ "CONVERT(INT, L.ATT_ID) AS id, "
-					+ "ISNULL(L.USER_CODE, '') AS userCodeRaw, "
-					+ "ISNULL(L.USER_CODE_TRIM, '') AS userCodeTrim, "
-					+ "CASE WHEN ISNUMERIC(L.USER_CODE) = 1 THEN CONVERT(BIGINT, L.USER_CODE) ELSE NULL END AS enrollId, "
-					+ "CONVERT(VARCHAR(19), L.ATT_DATETIME, 120) AS recordsTime, "
-					+ "ISNULL(CASE WHEN ISNUMERIC(L.COL2) = 1 THEN CONVERT(INT, L.COL2) ELSE NULL END, 0) AS mode, "
-					+ "ISNULL(CASE WHEN ISNUMERIC(L.INOUT_ID) = 1 THEN CONVERT(INT, L.INOUT_ID) ELSE NULL END, 0) AS intout, "
-					+ "ISNULL(CASE WHEN ISNUMERIC(L.COL3) = 1 THEN CONVERT(INT, L.COL3) ELSE NULL END, 0) AS event, "
-					+ "ISNULL(L.SLNO, '') AS deviceSerialNum, "
-					+ "ISNULL(CASE WHEN ISNUMERIC(L.COL5) = 1 THEN CONVERT(FLOAT, L.COL5) ELSE NULL END, 0) AS temperature, "
-					+ "ISNULL(L.COL6, '') AS image " + "FROM LatestLogs L "
-					+ "ORDER BY L.ATT_DATETIME DESC, L.ATT_ID DESC";
-			List<Object> dataParams = new ArrayList<Object>();
-			dataParams.add(Integer.valueOf(safeLimit));
-			dataParams.addAll(whereParams);
-			rows = jdbcTemplate.queryForList(dataSql, dataParams.toArray());
-			Set<String> userIds = new LinkedHashSet<String>();
-			for (int i = 0; i < rows.size(); i++) {
-				Map<String, Object> row = rows.get(i);
-				String rawCode = normalizeText(row.get("userCodeRaw") == null ? "" : String.valueOf(row.get("userCodeRaw")));
-				String trimmedCode = normalizeText(
-						row.get("userCodeTrim") == null ? "" : String.valueOf(row.get("userCodeTrim")));
-				if (hasText(rawCode)) {
-					userIds.add(rawCode);
+				Set<String> userIds = new LinkedHashSet<String>();
+				for (int i = 0; i < rows.size(); i++) {
+					Map<String, Object> row = rows.get(i);
+					String rawCode = normalizeText(
+							row.get("userCodeRaw") == null ? "" : String.valueOf(row.get("userCodeRaw")));
+					String trimmedCode = normalizeText(
+							row.get("userCodeTrim") == null ? "" : String.valueOf(row.get("userCodeTrim")));
+					if (hasText(rawCode)) {
+						userIds.add(rawCode);
+					}
+					if (hasText(trimmedCode)) {
+						userIds.add(trimmedCode);
+					}
 				}
-				if (hasText(trimmedCode)) {
-					userIds.add(trimmedCode);
-				}
+				Map<String, String> userNameById = loadLatestUserNamesById(jdbcTemplate, userIds);
+				List<Records> records = mapLatestRecordRows(rows, userNameById);
+				applyProfileImageFallback(records, jdbcTemplate);
+				Integer latestRecordId = records.isEmpty() ? null : Integer.valueOf(records.get(0).getId());
+				return Msg.success().add("records", records).add("count", Integer.valueOf(records.size()))
+						.add("limit", Integer.valueOf(safeLimit)).add("latestRecordId", latestRecordId)
+						.add("deviceSn", normalizedSn).add("keyword", normalizedKeyword).add("fromTime", normalizedFromTime)
+						.add("toTime", normalizedToTime);
 			}
-			Map<String, String> userNameById = loadLatestUserNamesById(jdbcTemplate, userIds);
-			List<Records> records = mapLatestRecordRows(rows, userNameById);
-			applyProfileImageFallback(records, jdbcTemplate);
-			Integer latestRecordId = records.isEmpty() ? null : Integer.valueOf(records.get(0).getId());
-			return Msg.success().add("records", records).add("count", Integer.valueOf(records.size()))
-					.add("limit", Integer.valueOf(safeLimit)).add("latestRecordId", latestRecordId)
-					.add("deviceSn", normalizedSn).add("keyword", normalizedKeyword).add("fromTime", normalizedFromTime)
-					.add("toTime", normalizedToTime);
-		} else {
+
 			// Keyword path (User ID/Name search) keeps exact matching behavior.
 			String fromClause = " FROM ATTLOG A " + "LEFT JOIN ("
 					+ "SELECT ID, NAME, ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn "
@@ -2569,16 +2668,94 @@ public class AllController extends ControllerBase {
 			List<Object> dataParams = new ArrayList<Object>(whereParams);
 			dataParams.add(Integer.valueOf(safeLimit));
 			rows = jdbcTemplate.queryForList(dataSql, dataParams.toArray());
+			List<Records> records = mapLatestRecordRows(rows);
+			applyProfileImageFallback(records, jdbcTemplate);
+			Integer latestRecordId = records.isEmpty() ? null : Integer.valueOf(records.get(0).getId());
+			return Msg.success().add("records", records).add("count", Integer.valueOf(records.size()))
+					.add("limit", Integer.valueOf(safeLimit)).add("applyFilter", Boolean.FALSE)
+					.add("pn", Integer.valueOf(1)).add("pageSize", Integer.valueOf(safeLimit))
+					.add("totalPages", Integer.valueOf(1)).add("totalMatched", Integer.valueOf(records.size()))
+					.add("latestRecordId", latestRecordId).add("deviceSn", normalizedSn).add("keyword", normalizedKeyword)
+					.add("fromTime", normalizedFromTime).add("toTime", normalizedToTime);
+		} catch (DataAccessException ex) {
+			log.error(
+					"[RECORDS-LATEST] Failed loading latest records. requestedFilterMode={} effectiveFilterMode={} deviceSn={} keyword={} fromTime={} toTime={} pn={} pageSize={} limit={}",
+					Boolean.valueOf(requestedFilterMode), Boolean.valueOf(filterMode), normalizedSn, normalizedKeyword,
+					normalizedFromTime, normalizedToTime, Integer.valueOf(safePageNum), Integer.valueOf(safePageSize),
+					Integer.valueOf(safeLimit), ex);
+			String errorMessage = isDatabaseBusy(ex) ? "Database is busy. Please retry in a few seconds."
+					: "Unable to load latest records right now.";
+			return Msg.fail().add("error", errorMessage).add("applyFilter", Boolean.valueOf(filterMode))
+					.add("deviceSn", normalizedSn).add("keyword", normalizedKeyword).add("fromTime", normalizedFromTime)
+					.add("toTime", normalizedToTime);
 		}
-		List<Records> records = mapLatestRecordRows(rows);
-		applyProfileImageFallback(records, jdbcTemplate);
-		Integer latestRecordId = records.isEmpty() ? null : Integer.valueOf(records.get(0).getId());
-		return Msg.success().add("records", records).add("count", Integer.valueOf(records.size()))
-				.add("limit", Integer.valueOf(safeLimit)).add("applyFilter", Boolean.FALSE).add("pn", Integer.valueOf(1))
-				.add("pageSize", Integer.valueOf(safeLimit)).add("totalPages", Integer.valueOf(1))
-				.add("totalMatched", Integer.valueOf(records.size()))
-				.add("latestRecordId", latestRecordId).add("deviceSn", normalizedSn).add("keyword", normalizedKeyword)
-				.add("fromTime", normalizedFromTime).add("toTime", normalizedToTime);
+	}
+
+	private boolean hasActiveLatestRecordFilters(String normalizedSn, String normalizedKeyword, String normalizedFromTime,
+			String normalizedToTime) {
+		return hasText(normalizedSn) || hasText(normalizedKeyword) || normalizedFromTime != null
+				|| normalizedToTime != null;
+	}
+
+	private List<Map<String, Object>> queryFilteredLatestRecordRows(JdbcTemplate jdbcTemplate, String fromClause,
+			String whereClause, List<Object> whereParams, int pageNum, int pageSize) {
+		int effectivePageNum = pageNum < 1 ? 1 : pageNum;
+		int offset = (effectivePageNum - 1) * pageSize;
+		String dataSql = "SELECT * FROM (" + "SELECT " + "CONVERT(INT, A.ATT_ID) AS id, "
+				+ "CASE WHEN ISNUMERIC(A.USER_CODE) = 1 THEN CONVERT(BIGINT, A.USER_CODE) ELSE NULL END AS enrollId, "
+				+ "CONVERT(VARCHAR(19), A.ATT_DATETIME, 120) AS recordsTime, "
+				+ "ISNULL(CASE WHEN ISNUMERIC(A.COL2) = 1 THEN CONVERT(INT, A.COL2) ELSE NULL END, 0) AS mode, "
+				+ "ISNULL(CASE WHEN ISNUMERIC(A.INOUT_ID) = 1 THEN CONVERT(INT, A.INOUT_ID) ELSE NULL END, 0) AS intout, "
+				+ "ISNULL(CASE WHEN ISNUMERIC(A.COL3) = 1 THEN CONVERT(INT, A.COL3) ELSE NULL END, 0) AS event, "
+				+ "ISNULL(U.NAME, '') AS userName, " + "ISNULL(A.SLNO, '') AS deviceSerialNum, "
+				+ "ISNULL(CASE WHEN ISNUMERIC(A.COL5) = 1 THEN CONVERT(FLOAT, A.COL5) ELSE NULL END, 0) AS temperature, "
+				+ "ISNULL(A.COL6, '') AS image, " + "COUNT(1) OVER() AS totalMatched " + fromClause + whereClause + ") X "
+				+ "ORDER BY X.recordsTime DESC, X.id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+		List<Object> dataParams = new ArrayList<Object>(whereParams);
+		dataParams.add(Integer.valueOf(offset));
+		dataParams.add(Integer.valueOf(pageSize));
+		return jdbcTemplate.queryForList(dataSql, dataParams.toArray());
+	}
+
+	private int extractTotalMatched(List<Map<String, Object>> rows) {
+		if (rows == null || rows.isEmpty()) {
+			return 0;
+		}
+		Map<String, Object> row = rows.get(0);
+		if (row == null || row.isEmpty()) {
+			return 0;
+		}
+		Object value = row.containsKey("totalMatched") ? row.get("totalMatched") : row.get("TOTALMATCHED");
+		if (value instanceof Number) {
+			return ((Number) value).intValue();
+		}
+		if (value == null) {
+			return 0;
+		}
+		try {
+			return Integer.parseInt(String.valueOf(value));
+		} catch (NumberFormatException ex) {
+			return 0;
+		}
+	}
+
+	private boolean isDatabaseBusy(Throwable ex) {
+		Throwable cursor = ex;
+		while (cursor != null) {
+			String message = cursor.getMessage();
+			if (message != null) {
+				String lowerMessage = message.toLowerCase(Locale.ENGLISH);
+				if (lowerMessage.contains("timeout waiting for idle object")
+						|| lowerMessage.contains("cannot get jdbc connection")
+						|| lowerMessage.contains("cannot get a connection, pool error")
+						|| lowerMessage.contains("unable to acquire jdbc connection")
+						|| lowerMessage.contains("borrow object failed")) {
+					return true;
+				}
+			}
+			cursor = cursor.getCause();
+		}
+		return false;
 	}
 
 	private List<Records> mapLatestRecordRows(List<Map<String, Object>> rows) {
@@ -2823,10 +3000,16 @@ public class AllController extends ControllerBase {
 				+ "ID BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY, "
 				+ "ACTIVE_USER INT NOT NULL DEFAULT 0, "
 				+ "DISABLE_USER INT NOT NULL DEFAULT 0, "
+				+ "DELETED_USER INT NOT NULL DEFAULT 0, "
 				+ "STATUS VARCHAR(20) NOT NULL, "
 				+ "STARTED_AT DATETIME2(0) NOT NULL, "
 				+ "FINISHED_AT DATETIME2(0) NULL "
 				+ "); "
+				+ "END; "
+				+ "IF COL_LENGTH('dbo." + VERIFY_SCHEDULER_AUDIT_TABLE + "', 'DELETED_USER') IS NULL "
+				+ "BEGIN "
+				+ "ALTER TABLE dbo." + VERIFY_SCHEDULER_AUDIT_TABLE + " ADD DELETED_USER INT NOT NULL CONSTRAINT DF_"
+				+ VERIFY_SCHEDULER_AUDIT_TABLE + "_DELETED_USER DEFAULT 0 WITH VALUES; "
 				+ "END; "
 				+ "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_" + VERIFY_SCHEDULER_AUDIT_TABLE
 				+ "_STARTED_AT' AND object_id = OBJECT_ID('dbo." + VERIFY_SCHEDULER_AUDIT_TABLE + "')) "
@@ -3183,6 +3366,74 @@ public class AllController extends ControllerBase {
 		int queued = queueUsersStatusSyncOnAllDevices(persons, serials);
 		return Msg.success().add("devices", serials.size()).add("users", persons.size()).add("inactiveUsers", inactiveUsers)
 				.add("activeUsers", persons.size() - inactiveUsers).add("commandsQueued", queued);
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/syncUsersStatusByUpdDateAllDevices", method = RequestMethod.GET)
+	public Msg syncUsersStatusByUpdDateAllDevices(@RequestParam("syncDate") String syncDate) {
+		if (!hasText(syncDate)) {
+			return Msg.fail().add("error", "syncDate is required.");
+		}
+		DatabaseUserDeltaSyncService.SyncResult result = databaseUserDeltaSyncService
+				.directSendUsersUpdatedByUpdDate("manual-upd-date-page", syncDate.trim());
+		long plannedForOnlineDevices = (long) result.getChangedStatusUsers() * (long) result.getOnlineDevices();
+		int offlineDevices = Math.max(0, result.getDevices() - result.getOnlineDevices());
+		if (!result.isSuccess()) {
+			String error = hasText(result.getError()) ? result.getError() : result.getReason();
+			return Msg.fail().add("error", error).add("syncDate", syncDate.trim()).add("devices", result.getDevices())
+					.add("onlineDevices", result.getOnlineDevices()).add("users", result.getChangedStatusUsers())
+					.add("enabledUsers", result.getEnabledUsers()).add("disabledUsers", result.getDisabledUsers())
+					.add("offlineDevices", offlineDevices).add("sendMode", "direct-online")
+					.add("commandsSent", result.getTotalCommandsQueued())
+					.add("enableCommandsSent", result.getEnableCommandsQueued())
+					.add("disableCommandsSent", result.getDisableCommandsQueued())
+					.add("commandsPlannedForOnlineDevices", plannedForOnlineDevices)
+					.add("commandsQueued", result.getTotalCommandsQueued())
+					.add("estimatedDeviceDispatchSeconds", result.getEstimatedDeviceDispatchSeconds())
+					.add("reason", result.getReason());
+		}
+		return Msg.success().add("syncDate", syncDate.trim()).add("devices", result.getDevices())
+				.add("onlineDevices", result.getOnlineDevices()).add("users", result.getChangedStatusUsers())
+				.add("enabledUsers", result.getEnabledUsers()).add("disabledUsers", result.getDisabledUsers())
+				.add("offlineDevices", offlineDevices).add("sendMode", "direct-online")
+				.add("commandsSent", result.getTotalCommandsQueued())
+				.add("enableCommandsSent", result.getEnableCommandsQueued())
+				.add("disableCommandsSent", result.getDisableCommandsQueued())
+				.add("commandsPlannedForOnlineDevices", plannedForOnlineDevices)
+				.add("commandsQueued", result.getTotalCommandsQueued())
+				.add("estimatedDeviceDispatchSeconds", result.getEstimatedDeviceDispatchSeconds())
+				.add("reason", result.getReason());
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/syncUsersDeleteByDelDateAllDevices", method = RequestMethod.GET)
+	public Msg syncUsersDeleteByDelDateAllDevices(@RequestParam("syncDate") String syncDate) {
+		if (!hasText(syncDate)) {
+			return Msg.fail().add("error", "syncDate is required.");
+		}
+		DatabaseUserDeltaSyncService.SyncResult result = databaseUserDeltaSyncService
+				.directSendUsersDeletedByDelDate("manual-del-date-page", syncDate.trim());
+		long plannedForOnlineDevices = (long) result.getChangedDeletedUsers() * (long) result.getOnlineDevices();
+		int offlineDevices = Math.max(0, result.getDevices() - result.getOnlineDevices());
+		if (!result.isSuccess()) {
+			String error = hasText(result.getError()) ? result.getError() : result.getReason();
+			return Msg.fail().add("error", error).add("syncDate", syncDate.trim()).add("devices", result.getDevices())
+					.add("onlineDevices", result.getOnlineDevices()).add("deletedUsers", result.getChangedDeletedUsers())
+					.add("offlineDevices", offlineDevices).add("sendMode", "direct-online")
+					.add("commandsSent", result.getDeleteCommandsQueued())
+					.add("commandsPlannedForOnlineDevices", plannedForOnlineDevices)
+					.add("commandsQueued", result.getDeleteCommandsQueued())
+					.add("estimatedDeviceDispatchSeconds", result.getEstimatedDeviceDispatchSeconds())
+					.add("reason", result.getReason());
+		}
+		return Msg.success().add("syncDate", syncDate.trim()).add("devices", result.getDevices())
+				.add("onlineDevices", result.getOnlineDevices()).add("deletedUsers", result.getChangedDeletedUsers())
+				.add("offlineDevices", offlineDevices).add("sendMode", "direct-online")
+				.add("commandsSent", result.getDeleteCommandsQueued())
+				.add("commandsPlannedForOnlineDevices", plannedForOnlineDevices)
+				.add("commandsQueued", result.getDeleteCommandsQueued())
+				.add("estimatedDeviceDispatchSeconds", result.getEstimatedDeviceDispatchSeconds())
+				.add("reason", result.getReason());
 	}
 
 	@ResponseBody

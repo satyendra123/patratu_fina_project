@@ -44,12 +44,16 @@
 		}
 		.device-status-chip {
 			display: inline-flex;
-			align-items: center;
-			padding: 2px 0;
+			align-items: flex-start;
+			min-width: 180px;
+			padding: 6px 10px;
+			border: 1px solid #e3e3e3;
+			border-radius: 6px;
+			background: #fafafa;
 			font-size: 12px;
 			font-weight: 600;
 			color: #333;
-			animation: statusPop 260ms ease-out;
+			animation: none;
 		}
 		.device-status-chip.online {
 			color: #10763a;
@@ -61,9 +65,26 @@
 			width: 10px;
 			height: 10px;
 			border-radius: 50%;
-			margin-right: 8px;
+			margin-right: 10px;
+			margin-top: 12px;
 			position: relative;
-			animation: dotHeartbeat 1.2s infinite ease-in-out;
+			animation: none;
+		}
+		.device-status-text {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+			line-height: 1.25;
+		}
+		.device-status-location {
+			font-size: 12px;
+			font-weight: 700;
+			color: #333;
+			text-transform: none;
+		}
+		.device-status-label {
+			font-size: 12px;
+			font-weight: 600;
 		}
 		.device-status-chip.online .device-status-dot {
 			background: #17b65a;
@@ -82,7 +103,56 @@
 			height: 20px;
 			border-radius: 50%;
 			transform: translate(-50%, -50%) scale(0.5);
-			animation: dotPulse 1.6s infinite ease-out;
+			display: none;
+			animation: none;
+		}
+		.page-brand {
+			margin: 6px 0 8px;
+		}
+		.page-brand img {
+			max-height: 56px;
+			width: auto;
+		}
+		.top-right-controls {
+			display: flex;
+			justify-content: flex-end;
+			align-items: center;
+			gap: 8px;
+			white-space: nowrap;
+			overflow-x: auto;
+			padding-bottom: 2px;
+		}
+		.top-right-controls label {
+			margin: 0;
+			font-weight: 600;
+			white-space: nowrap;
+		}
+		#deviceSelect {
+			width: 180px;
+			height: 35px;
+		}
+		#deviceInOutModeSelect {
+			width: 110px;
+			height: 35px;
+			padding: 4px 8px;
+		}
+		#saveDeviceInOutModeBtn {
+			height: 35px;
+			padding: 6px 12px;
+		}
+		#deviceInOutModeCurrent {
+			margin: 0;
+			font-size: 12px;
+			font-weight: 600;
+			white-space: nowrap;
+		}
+		.app-footer {
+			margin-top: 18px;
+			padding: 12px 0 18px;
+			border-top: 1px solid #e5e5e5;
+			text-align: center;
+			color: #666;
+			font-size: 12px;
 		}
 		.device-status-chip.online .device-status-dot:after {
 			background: rgba(23, 182, 90, 0.35);
@@ -741,27 +811,26 @@
 		<!-- æ ‡é¢˜ -->
 		<div class="row">
 			<div class="col-md-12">
-				<h1>HOUSTON SYSTEM</h1>
+				<div class="page-brand">
+					<img src="${APP_PATH}/static/img/housys.jpg" alt="Housys">
+				</div>
 			</div>
 		</div>
 		<!-- æŒ‰é’® -->
 		<div class="row">
-			<div class="col-md-2 col-md-offset-10">
-			    
-				  <label class="col-xs-3">select device</label>  
-	              <select id="deviceSelect"  class="textbox combo" name="distribute_type" style="width: 180px; height: 35px;">						
-	                								
-	              </select>
-	              <div style="margin-top:8px;">
-	              	<select id="deviceInOutModeSelect" class="form-control" style="width:180px;display:inline-block;height:30px;padding:4px 8px;">
-	              		<option value="AUTO">AUTO</option>
-	              		<option value="IN">IN</option>
-	              		<option value="OUT">OUT</option>
-	              	</select>
-	              	<button class="btn btn-primary btn-xs" id="saveDeviceInOutModeBtn" style="margin-top:6px;width:180px;">Save Device Mode</button>
-	              	<div id="deviceInOutModeCurrent" style="margin-top:6px;font-size:12px;font-weight:600;">Current Mode: AUTO</div>
-	              </div>
-
+			<div class="col-md-12">
+				<div class="top-right-controls">
+					<label for="deviceSelect">Select Device</label>
+		              <select id="deviceSelect" class="textbox combo" name="distribute_type">						
+		              </select>
+		              <select id="deviceInOutModeSelect" class="form-control">
+		              		<option value="AUTO">AUTO</option>
+		              		<option value="IN">IN</option>
+		              		<option value="OUT">OUT</option>
+		              </select>
+		              <button class="btn btn-primary btn-sm" id="saveDeviceInOutModeBtn">Save Device Mode</button>
+		              <div id="deviceInOutModeCurrent">Current Mode: AUTO</div>
+				</div>
 				</div>
 			</div>
 		<div class="row">
@@ -775,8 +844,9 @@
 		<div class="row" style="margin-top:8px;">
 			<div class="col-md-12">
 				<input type="text" class="form-control" id="userSearchInputTop" placeholder="Search by User ID / Name" style="width: 320px; display:inline-block;">
-				<button class="btn btn-warning" id="syncDbAllDevicesBtn" style="margin-left:8px;">SetUserToAllDevice (With Image)</button>
+				<button class="btn btn-warning" id="syncDbAllDevicesBtn" style="margin-left:8px;" disabled="disabled">SetUserToAllDevice (With Image)</button>
 				<button class="btn btn-default" id="syncStatusAllDevicesBtn" style="margin-left:8px;">Status Sync (Active/Deactive)</button>
+				<button class="btn btn-primary" id="updateDataPageBtn" style="margin-left:8px;">updatedata</button>
 				<button class="btn btn-success" id="enableMasterDeviceSyncBtn" style="margin-left:8px;display:none;">Set Selected As Master</button>
 				<button class="btn btn-default" id="disableMasterDeviceSyncBtn" style="margin-left:8px;display:none;">Disable Master Sync</button>
 				<button class="btn btn-info" id="syncMasterDeviceFullBtn" style="margin-left:8px;display:none;">Master Full Sync -> Others</button>
@@ -823,7 +893,7 @@
 		</div>
 		<button class="btn btn-primary" id="collectList_emp_modal_btn" disabled="disabled">getUserList</button>
 		<button class="btn btn-primary" id="collectInfo_emp_modal_btn" disabled="disabled">getUserInfo</button>
-		<button class="btn btn-primary" id="setUserToDevice_emp_modal_btn">SetUserToDevice</button>
+		<button class="btn btn-primary" id="setUserToDevice_emp_modal_btn" disabled="disabled">SetUserToDevice</button>
 		<button class="btn btn-primary" id="setUserName_modal_btn" disabled="disabled">setUserNameToDevice</button>
 		<button class="btn btn-primary" id="initSys_emp_modal_btn" disabled="disabled">InitSystem</button>
 		<button class="btn btn-primary" id="logInfo_emp_modal_btn">LogRecord</button>
@@ -843,8 +913,9 @@
 				<option value="1">Active (1)</option>
 				<option value="0">Deactive (0)</option>
 			</select>
-			<button class="btn btn-primary" id="setUserEnable_btn" disabled="disabled">Send Enable/Disable</button>
+			<button class="btn btn-primary" id="setUserEnable_btn">Send Enable/Disable</button>
 		</div>
+		<div class="app-footer">Powered by Houston System | © 2026 Houston System. All rights reserved.</div>
 	</div>
 	<script type="text/javascript">
 		var totalRecord,currentPage;
@@ -961,17 +1032,23 @@
 					.appendTo(panel);
 				return;
 			}
-				$.each(devices, function(index, device){
+			$.each(devices, function(index, device){
 					var serialNum = $.trim((device && device.serialNum) ? device.serialNum : "");
 					if(serialNum === ""){
 						return;
+					}
+					var locationName = $.trim((device && device.locationName) ? device.locationName : "");
+					if(locationName === ""){
+						locationName = "Unmapped";
 					}
 					var modeText = normalizeDeviceInOutMode(device ? device.inOutMode : "");
 					var isOnline = normalizeDeviceOnlineStatus(device.status);
 					var chip = $("<div></div>").addClass("device-status-chip")
 						.addClass(isOnline ? "online" : "offline");
 					$("<span></span>").addClass("device-status-dot").appendTo(chip);
-					$("<span></span>").text(serialNum + " [" + modeText + "]").appendTo(chip);
+					var textWrap = $("<div></div>").addClass("device-status-text").appendTo(chip);
+					$("<span></span>").addClass("device-status-location").text(locationName).appendTo(textWrap);
+					$("<span></span>").addClass("device-status-label").text(serialNum + " [" + modeText + "]").appendTo(textWrap);
 					chip.appendTo(panel);
 				});
 			if(panel.children().length === 0){
@@ -1057,13 +1134,12 @@
 				.append($("<th></th>").text("Online"))
 				.append($("<th></th>").text("Last Status"))
 				.append($("<th></th>").text("Last Sync At"))
-				.append($("<th></th>").text("Last User ID"))
 				.append($("<th></th>").text("Last Queued"))
 				.append($("<th></th>").text("Delivered (Success)"))
 				.append($("<th></th>").text("Last CleanAdmin"))
 				.append($("<th></th>").text("Total Runs"))
 				.append($("<th></th>").text("Pending Now"))
-				.append($("<th></th>").text("Delta Users"))
+				.append($("<th></th>").text("Queued Users"))
 				.append($("<th></th>").text("Queued This Run"))
 				.append($("<th></th>").text("ETA(sec)"))
 				.append($("<th></th>").text("Message"))
@@ -1082,13 +1158,12 @@
 				var lastStatus = $.trim((state.lastSyncStatus || detail.syncStatus || "NEVER")).toUpperCase();
 				var lastSyncAt = $.trim(state.lastSyncAt || detail.lastSyncAt || "");
 				if(lastSyncAt === ""){ lastSyncAt = "-"; }
-				var lastUserId = toInt(state.lastSyncUserId, toInt(detail.lastSyncedUserIdAfter, 0));
 				var lastQueued = toInt(state.lastQueuedSetuserinfo, toInt(detail.queuedSetuserinfo, 0));
 				var deliveredSuccess = toInt(state.deliveredSetuserinfoCount, 0);
 				var lastCleanAdmin = toInt(state.lastQueuedCleanadmin, toInt(detail.queuedCleanAdmin, 0));
 				var totalRuns = toInt(state.totalRuns, 0);
 				var pendingNow = (detail.pendingAfter === undefined || detail.pendingAfter === null || detail.pendingAfter === "") ? "-" : toInt(detail.pendingAfter, 0);
-				var deltaUsers = (detail.deltaUserCount === undefined || detail.deltaUserCount === null || detail.deltaUserCount === "") ? "-" : toInt(detail.deltaUserCount, 0);
+				var queuedUsers = (detail.deltaUserCount === undefined || detail.deltaUserCount === null || detail.deltaUserCount === "") ? "-" : toInt(detail.deltaUserCount, 0);
 				var queuedThisRun = (detail.queuedSetuserinfo === undefined || detail.queuedSetuserinfo === null || detail.queuedSetuserinfo === "") ? "-" : toInt(detail.queuedSetuserinfo, 0);
 				var etaSec = (detail.estimatedDispatchSeconds === undefined || detail.estimatedDispatchSeconds === null || detail.estimatedDispatchSeconds === "") ? "-" : toInt(detail.estimatedDispatchSeconds, 0);
 				var message = $.trim(detail.syncMessage || state.lastErrorMessage || state.lastSyncMessage || "");
@@ -1101,13 +1176,12 @@
 					.append($("<td></td>").text(online))
 					.append($("<td></td>").text(lastStatus))
 					.append($("<td></td>").text(lastSyncAt))
-					.append($("<td></td>").text(lastUserId))
 					.append($("<td></td>").text(lastQueued))
 					.append($("<td></td>").text(deliveredSuccess))
 					.append($("<td></td>").text(lastCleanAdmin))
 					.append($("<td></td>").text(totalRuns))
 					.append($("<td></td>").text(pendingNow))
-					.append($("<td></td>").text(deltaUsers))
+					.append($("<td></td>").text(queuedUsers))
 					.append($("<td></td>").text(queuedThisRun))
 					.append($("<td></td>").text(etaSec))
 					.append($("<td></td>").text(message))
@@ -1346,7 +1420,8 @@
 				var uploadBtu = $("<button></button>").addClass("btn btn-info btn-sm upload_btu")
 				.append("<span></span>").append("uploadPersonToDevice");
 	           //ä¸ºç¼–è¾‘æŒ‰é’®æ·»åŠ ä¸€ä¸ªè‡ªå®šä¹‰çš„å±žæ€§ï¼Œæ¥è¡¨ç¤ºå½“å‰çš„å‘˜å·¥id
-	            uploadBtu.attr("upload-id",userId);
+				uploadBtu.attr("upload-id",userId);
+				uploadBtu.prop("disabled", true);
 				var editBtu = $("<button></button>").addClass("btn btn-primary btn-sm edit_btu")
 					.append("<span></span>").append("EditUser");
 				editBtu.attr("edit-id",userId);
@@ -1355,6 +1430,7 @@
 							.append("<span></span>").append("DeleteUser");
 				//ä¸ºåˆ é™¤æŒ‰é’®æ·»åŠ ä¸€ä¸ªè‡ªå®šä¹‰çš„å±žæ€§ï¼Œæ¥è¡¨ç¤ºå½“å‰çš„å‘˜å·¥id
 				delBtu.attr("delete-id",userId);
+				delBtu.prop("disabled", true).attr("title", "Delete disabled");
 				var disableBtu = $("<button></button>").addClass("btn btn-warning btn-sm disable_user_btu")
 					.append("<span></span>").append("Disable");
 				disableBtu.attr("status-id",userId);
@@ -1815,6 +1891,10 @@
 			});
 	      });
 
+	      $("#updateDataPageBtn").click(function(){
+			window.open("${APP_PATH}/updateDataPage", "_blank");
+	      });
+
 	      $("#enableMasterDeviceSyncBtn").click(function(){
 			configureMasterDeviceSyncFromSelection(true);
 	      });
@@ -1953,15 +2033,23 @@
 			}
 		});
 			$("#setUserToDevice_emp_modal_btn").click(function(){
-				var deviceSn=document.getElementById('deviceSelect').value;
+				var deviceSn = $.trim(document.getElementById('deviceSelect').value || "");
+				if(deviceSn === ""){
+					alert("please select device");
+					return;
+				}
 				if(confirm("do you want to send user info to deviceï¼Ÿ")){
-					//ç¡®è®¤ï¼Œå‘é€ajaxè¯·æ±‚ï¼Œåˆ é™¤
+					var $btn = $("#setUserToDevice_emp_modal_btn");
+					var originalText = $btn.text();
+					$btn.prop("disabled", true).text("SetUserToDevice...");
 					$.ajax({
-						url:"${APP_PATH}/setPersonToDevice?deviceSn="+deviceSn,
+						url:"${APP_PATH}/setPersonToDevice?deviceSn="+encodeURIComponent(deviceSn),
 						type:"GET",
+						cache:false,
 						success:function(result){
 							var ext = (result && result.extend) ? result.extend : {};
 							var alertText = (result && result.msg) ? result.msg : "Success";
+							var syncMode = $.trim(ext.syncMode || "");
 							if(ext.deviceSn){
 								alertText += "\nDevice: " + ext.deviceSn;
 							}
@@ -1971,14 +2059,18 @@
 							if(typeof ext.totalRecords !== "undefined"){
 								alertText += "\nTotal DB Records: " + ext.totalRecords;
 							}
-							if(typeof ext.deltaUsers !== "undefined"){
-								alertText += "\nDelta Users: " + ext.deltaUsers;
+							if(typeof ext.queuedUsers !== "undefined"){
+								alertText += "\nQueued Users: " + ext.queuedUsers;
+							}else if(typeof ext.deltaUsers !== "undefined"){
+								alertText += "\nQueued Users: " + ext.deltaUsers;
 							}
-							if(typeof ext.deltaRecords !== "undefined"){
-								alertText += "\nDelta Records: " + ext.deltaRecords;
+							if(typeof ext.queuedCount !== "undefined"){
+								alertText += "\nQueued Records: " + ext.queuedCount;
+							}else if(typeof ext.deltaRecords !== "undefined"){
+								alertText += "\nQueued Records: " + ext.deltaRecords;
 							}
 							if(typeof ext.queuedRecords !== "undefined"){
-								alertText += "\nQueued Records: " + ext.queuedRecords;
+								alertText += "\nCommands Queued: " + ext.queuedRecords;
 							}
 							if(typeof ext.imageRecords !== "undefined"){
 								alertText += "\nImage Records(backup 50): " + ext.imageRecords;
@@ -2007,11 +2099,11 @@
 							if(ext.syncMessage){
 								alertText += "\nSync Message: " + ext.syncMessage;
 							}
-							if(typeof ext.lastSyncedUserIdBefore !== "undefined"){
-								alertText += "\nLast Sync User ID Before: " + ext.lastSyncedUserIdBefore;
+							if(ext.deviceSyncState && typeof ext.deviceSyncState.lastSyncUserId !== "undefined"){
+								alertText += "\nLast Acked Row ID: " + ext.deviceSyncState.lastSyncUserId;
 							}
-							if(typeof ext.lastSyncedUserIdAfter !== "undefined"){
-								alertText += "\nLast Sync User ID After: " + ext.lastSyncedUserIdAfter;
+							if(ext.deviceSyncState && ext.deviceSyncState.lastSyncAt){
+								alertText += "\nLast Sync At: " + ext.deviceSyncState.lastSyncAt;
 							}
 							if(typeof ext.estimatedDispatchSeconds !== "undefined"){
 								alertText += "\nEstimated Dispatch: " + ext.estimatedDispatchSeconds + " sec";
@@ -2022,12 +2114,39 @@
 							if(typeof ext.dispatchRatePerMinute !== "undefined"){
 								alertText += "\nCurrent Dispatch Rate: " + ext.dispatchRatePerMinute + " records/min";
 							}
+							if(syncMode !== ""){
+								alertText += "\nSync Mode: " + syncMode;
+							}
 							if(ext.note){
 								alertText += "\n" + ext.note;
 							}
 							alert(alertText);
 							//å›žåˆ°å½“å‰é¡µ
 							to_page(currentPage);
+						},
+						error:function(xhr, textStatus, errorThrown){
+							var detail = "";
+							if(xhr && xhr.responseJSON && xhr.responseJSON.extend && xhr.responseJSON.extend.error){
+								detail = xhr.responseJSON.extend.error;
+							}else if(xhr && xhr.responseText){
+								try{
+									var parsed = JSON.parse(xhr.responseText);
+									if(parsed && parsed.extend && parsed.extend.error){
+										detail = parsed.extend.error;
+									}else if(parsed && parsed.msg){
+										detail = parsed.msg;
+									}
+								}catch(e){
+									detail = xhr.responseText;
+								}
+							}
+							if($.trim(detail) === ""){
+								detail = errorThrown || textStatus || "Request failed";
+							}
+							alert("SetUserToDevice failed.\n" + detail);
+						},
+						complete:function(){
+							$btn.prop("disabled", false).text(originalText);
 						}
 					});
 				}
@@ -2398,6 +2517,7 @@
 	</script>
 </body>
 </html>
+
 
 
 

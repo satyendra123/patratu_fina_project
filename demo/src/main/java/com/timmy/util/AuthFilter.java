@@ -40,9 +40,17 @@ public class AuthFilter implements Filter {
 
 		HttpSession session = req.getSession(false);
 		Object authUser = session == null ? null : session.getAttribute(SimpleAuthConfig.SESSION_USER_KEY);
-		if (authUser != null) {
+		Object sessionBootToken = session == null ? null
+				: session.getAttribute(SimpleAuthConfig.SESSION_BOOT_TOKEN_KEY);
+		Object contextBootToken = req.getServletContext().getAttribute(SimpleAuthConfig.CONTEXT_BOOT_TOKEN_KEY);
+		boolean bootTokenMatches = sessionBootToken != null && contextBootToken != null
+				&& sessionBootToken.toString().equals(contextBootToken.toString());
+		if (authUser != null && bootTokenMatches) {
 			chain.doFilter(request, response);
 			return;
+		}
+		if (session != null && authUser != null && !bootTokenMatches) {
+			session.invalidate();
 		}
 
 		if (isAjaxRequest(req) || path.startsWith("/emp") || path.startsWith("/addPerson") || path.startsWith("/savePerson")

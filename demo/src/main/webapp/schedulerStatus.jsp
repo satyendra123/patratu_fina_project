@@ -24,7 +24,6 @@
     }
     .status-success { background: #2e7d32; }
     .status-failed { background: #c62828; }
-    .status-partial { background: #ef6c00; }
     .status-running { background: #1565c0; }
     .status-not-run { background: #616161; }
     .status-unknown { background: #546e7a; }
@@ -91,11 +90,10 @@
                             <th>Online</th>
                             <th>Last Status</th>
                             <th>Last Sync At</th>
-                            <th>Last User ID</th>
                             <th>Last Queued</th>
                             <th>Delivered</th>
                             <th>Pending</th>
-                            <th>Delta Users</th>
+                            <th>Queued Users</th>
                             <th>Queued This Run</th>
                             <th>ETA(sec)</th>
                             <th>Message</th>
@@ -150,6 +148,7 @@
                             <th>Last Finish</th>
                             <th>Enabled Users</th>
                             <th>Disabled Users</th>
+                            <th>Deleted Users</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -201,9 +200,12 @@
     function statusClass(status) {
         if (status === "SUCCESS") { return "status-success"; }
         if (status === "FAILED") { return "status-failed"; }
-        if (status === "PARTIAL") { return "status-partial"; }
         if (status === "RUNNING") { return "status-running"; }
         return "status-unknown";
+    }
+
+    function normalizeDailyStatus(status) {
+        return status === "SUCCESS" ? "SUCCESS" : "FAILED";
     }
 
     function nowText() {
@@ -223,10 +225,9 @@
         var runningDays = 0;
 
         $.each(rows || [], function(i, row) {
-            var status = row && row.dailyStatus ? row.dailyStatus : "UNKNOWN";
+            var status = normalizeDailyStatus(row && row.dailyStatus ? row.dailyStatus : "FAILED");
             if (status === "SUCCESS") { successDays++; }
             if (status === "FAILED") { failedDays++; }
-            if (status === "RUNNING") { runningDays++; }
         });
 
         $("#summary_area").text(
@@ -245,13 +246,13 @@
         tbody.empty();
         if (!rows || rows.length === 0) {
             $("<tr></tr>")
-                .append($("<td></td>").attr("colspan", 10).text("No scheduler status records found."))
+                .append($("<td></td>").attr("colspan", 11).text("No scheduler status records found."))
                 .appendTo(tbody);
             return;
         }
 
         $.each(rows, function(index, item) {
-            var status = item && item.dailyStatus ? item.dailyStatus : "UNKNOWN";
+            var status = normalizeDailyStatus(item && item.dailyStatus ? item.dailyStatus : "FAILED");
             var serial = ((pn - 1) * pageSize) + index + 1;
             var badge = $("<span></span>")
                 .addClass("status-pill")
@@ -268,6 +269,7 @@
                 .append($("<td></td>").text(safeText(item.lastFinishedAt)))
                 .append($("<td></td>").text(toInt(item.enabledUsers)))
                 .append($("<td></td>").text(toInt(item.disabledUsers)))
+                .append($("<td></td>").text(toInt(item.deletedUsers)))
                 .appendTo(tbody);
         });
     }
@@ -368,13 +370,13 @@
     function renderDbSyncDeviceTable(deviceDetails, deviceSyncStateRows) {
         var tbody = $("#db_sync_device_table tbody");
         tbody.empty();
-        var mergedRows = mergeDbSyncRows(deviceDetails, deviceSyncStateRows);
-        if (!mergedRows.length) {
-            $("<tr></tr>")
-                .append($("<td></td>").attr("colspan", 13).text("No per-device sync status available."))
-                .appendTo(tbody);
-            return;
-        }
+            var mergedRows = mergeDbSyncRows(deviceDetails, deviceSyncStateRows);
+            if (!mergedRows.length) {
+                $("<tr></tr>")
+                    .append($("<td></td>").attr("colspan", 12).text("No per-device sync status available."))
+                    .appendTo(tbody);
+                return;
+            }
         $.each(mergedRows, function(index, row) {
             var state = row.state || {};
             var runtime = row.runtime || {};
@@ -385,11 +387,10 @@
             var online = (stateOnline === true || runtimeOnline === true || toInt(stateOnline) === 1 || toInt(runtimeOnline) === 1) ? "Yes" : "No";
             var lastStatus = safeUpper(state.lastSyncStatus || runtime.syncStatus || "NEVER");
             var lastSyncAt = safeText(state.lastSyncAt || runtime.lastSyncAt || "");
-            var lastUserId = toInt(state.lastSyncUserId, toInt(runtime.lastSyncedUserIdAfter));
             var lastQueued = toInt(state.lastQueuedSetuserinfo, toInt(runtime.queuedSetuserinfo));
             var delivered = toInt(state.deliveredSetuserinfoCount);
             var pending = (runtime.pendingAfter === undefined || runtime.pendingAfter === null || runtime.pendingAfter === "") ? "-" : toInt(runtime.pendingAfter);
-            var deltaUsers = (runtime.deltaUserCount === undefined || runtime.deltaUserCount === null || runtime.deltaUserCount === "") ? "-" : toInt(runtime.deltaUserCount);
+            var queuedUsers = (runtime.deltaUserCount === undefined || runtime.deltaUserCount === null || runtime.deltaUserCount === "") ? "-" : toInt(runtime.deltaUserCount);
             var queuedThisRun = (runtime.queuedSetuserinfo === undefined || runtime.queuedSetuserinfo === null || runtime.queuedSetuserinfo === "") ? "-" : toInt(runtime.queuedSetuserinfo);
             var etaSec = (runtime.estimatedDispatchSeconds === undefined || runtime.estimatedDispatchSeconds === null || runtime.estimatedDispatchSeconds === "") ? "-" : toInt(runtime.estimatedDispatchSeconds);
             var message = safeMessage(runtime.syncMessage || state.lastErrorMessage || state.lastSyncMessage || "");
@@ -399,11 +400,10 @@
                 .append($("<td></td>").text(online))
                 .append($("<td></td>").text(lastStatus))
                 .append($("<td></td>").text(lastSyncAt))
-                .append($("<td></td>").text(lastUserId))
                 .append($("<td></td>").text(lastQueued))
                 .append($("<td></td>").text(delivered))
                 .append($("<td></td>").text(pending))
-                .append($("<td></td>").text(deltaUsers))
+                .append($("<td></td>").text(queuedUsers))
                 .append($("<td></td>").text(queuedThisRun))
                 .append($("<td></td>").text(etaSec))
                 .append($("<td></td>").text(message))

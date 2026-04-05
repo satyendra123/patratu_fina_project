@@ -29,13 +29,47 @@ public class SqlServerAwareDataSource extends BasicDataSource {
 	@Override
 	public Connection getConnection() throws SQLException {
 		ensureNativeAuthDllLoaded(getUrl());
-		return super.getConnection();
+		try {
+			return super.getConnection();
+		} catch (SQLException ex) {
+			logConnectionBorrowFailure(ex);
+			throw ex;
+		}
 	}
 
 	@Override
 	public Connection getConnection(String username, String password) throws SQLException {
 		ensureNativeAuthDllLoaded(getUrl());
-		return super.getConnection(username, password);
+		try {
+			return super.getConnection(username, password);
+		} catch (SQLException ex) {
+			logConnectionBorrowFailure(ex);
+			throw ex;
+		}
+	}
+
+	private void logConnectionBorrowFailure(SQLException ex) {
+		String message = ex.getMessage();
+		String lowerMessage = message == null ? "" : message.toLowerCase(Locale.ENGLISH);
+		int active = -1;
+		int idle = -1;
+		try {
+			active = getNumActive();
+			idle = getNumIdle();
+		} catch (RuntimeException ignored) {
+			// Pool may not be fully initialized yet; keep fallback values.
+		}
+		if (lowerMessage.contains("timeout waiting for idle object")
+				|| lowerMessage.contains("cannot get a connection, pool error")
+				|| lowerMessage.contains("borrow object failed")) {
+			log.error("[DB-POOL] JDBC connection borrow timed out. active={} idle={} maxActive={} maxWaitMs={}",
+					Integer.valueOf(active), Integer.valueOf(idle), Integer.valueOf(getMaxActive()),
+					Long.valueOf(getMaxWait()), ex);
+			return;
+		}
+		log.warn("[DB-POOL] JDBC connection borrow failed. active={} idle={} maxActive={} maxWaitMs={}",
+				Integer.valueOf(active), Integer.valueOf(idle), Integer.valueOf(getMaxActive()),
+				Long.valueOf(getMaxWait()), ex);
 	}
 
 	private void ensureNativeAuthDllLoaded(String jdbcUrl) {

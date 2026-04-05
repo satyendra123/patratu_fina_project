@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -20,22 +21,31 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.sql.DataSource;
+
 import org.java_websocket.WebSocket;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
+import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.timmy.entity.Device;
 import com.timmy.entity.DeviceStatus;
 import com.timmy.entity.EnrollInfo;
@@ -68,6 +78,9 @@ public class WSServer extends WebSocketServer {
 	MachineCommandMapper machineCommandMapper;
 
 	@Autowired
+	DataSource dataSource;
+
+	@Autowired
 	NetWorkMapper netWorkMapper;
 
 	int j = 0;
@@ -84,12 +97,21 @@ public class WSServer extends WebSocketServer {
 	private static final String FIXED_REGISTRATION_DEVICE_SN = "AXTI11107153";
 	private static final String MASTER_SYNC_CONFIG_FILE = "master-device-sync.properties";
 	private static final String MASTER_SYNC_LOG_FILE = "master-device-sync.log";
+	private static final String DEVICE_USER_SYNC_STATE_TABLE = "JAVA_DEVICE_USER_SYNC_STATE";
+	private static final String DB_SYNC_STATE_SUCCESS = "SUCCESS";
 	private static final boolean AUTO_DB_RELAY_ANY_DEVICE = true;
 	private static final boolean ALLOW_DEVICE_ADMIN_STORAGE = false;
 	private static final int DEVICECMD_DEADLOCK_MAX_RETRY = 4;
 	private static final long DEVICECMD_DEADLOCK_RETRY_BASE_MS = 35L;
+	private static final String PHOTO_DB_WRITE_ENABLED_PROPERTY = "idsl.photo.db.write.enabled";
+	private static final long RELAY_ECHO_TTL_MS = 3L * 60L * 1000L;
+	private static final int RELAY_ECHO_TRACKING_MAX = 10000;
+	// These biometric devices can stay idle for long periods and may not reply
+	// with standard websocket pong frames, so disable the library watchdog.
+	private static final int CONNECTION_LOST_TIMEOUT_SECONDS = 0;
 	private static final Object DEVICE_USER_EXPORT_LOCK = new Object();
 	private static final Object MASTER_SYNC_LOCK = new Object();
+	private static volatile boolean photoDbWriteDisabledByFilegroupFull = false;
 	private static volatile boolean masterSyncConfigLoaded = false;
 	private static volatile boolean masterSyncEnabled = false;
 	private static volatile String masterSyncSourceSn = "";
@@ -100,23 +122,31 @@ public class WSServer extends WebSocketServer {
 	private static volatile String masterSyncLastRecord = "";
 	private static volatile boolean projectCodeDirResolved = false;
 	private static volatile Path projectCodeDir = null;
+	private volatile boolean deviceUserSyncStateTableEnsured;
 	private final int configuredPort;
 	private final ObjectMapper commandObjectMapper = new ObjectMapper();
+	private final Map<String, Long> recentRelayEchoExpiryByKey = new ConcurrentHashMap<String, Long>();
 
 	// private Timer timer;
 	public WSServer(InetSocketAddress address) {
 		super(address);
 		this.configuredPort = address.getPort();
-		setConnectionLostTimeout(120);
-		logger.info("ÃƒÂ¥Ã…â€œÃ‚Â°ÃƒÂ¥Ã‚ÂÃ¢â€šÂ¬" + address);
+		configureSocketServerOptions();
+		logger.info("ÃƒÆ’Ã‚Â¥Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬" + address);
 
 	}
 
 	public WSServer(int port) throws UnknownHostException {
 		super(new InetSocketAddress(port));
 		this.configuredPort = port;
-		setConnectionLostTimeout(120);
-		logger.info("ÃƒÂ§Ã‚Â«Ã‚Â¯ÃƒÂ¥Ã‚ÂÃ‚Â£" + port);
+		configureSocketServerOptions();
+		logger.info("ÃƒÆ’Ã‚Â§Ãƒâ€šÃ‚Â«Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â£" + port);
+	}
+
+	private void configureSocketServerOptions() {
+		setConnectionLostTimeout(CONNECTION_LOST_TIMEOUT_SECONDS);
+		setTcpNoDelay(true);
+		setReuseAddr(true);
 	}
 
 	/**
@@ -132,6 +162,7 @@ public class WSServer extends WebSocketServer {
 			logger.warn("WebSocket port {} is already in use; skipping startup.", configuredPort);
 			return false;
 		}
+		resetKnownDeviceStatusesOnServerStart();
 		super.start();
 		return true;
 	}
@@ -209,7 +240,7 @@ public class WSServer extends WebSocketServer {
 	public void onOpen(org.java_websocket.WebSocket conn, ClientHandshake handshake) {
 		// TODO Auto-generated method stub
 		// deviceService=(DeviceService)ContextLoader.getCurrentWebApplicationContext().getBean(DeviceService.class);
-		System.out.println("ÃƒÂ¦Ã…â€œÃ¢â‚¬Â°ÃƒÂ¤Ã‚ÂºÃ‚ÂºÃƒÂ¨Ã‚Â¿Ã…Â¾ÃƒÂ¦Ã…Â½Ã‚Â¥Socket conn:" + conn);
+		System.out.println("ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â¿Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â¥Socket conn:" + conn);
 		// l++;
 		logger.info("WebSocket open remote:{} resource:{} connection:{} upgrade:{} protocol:{} ua:{}",
 				conn == null ? null : conn.getRemoteSocketAddress(),
@@ -225,24 +256,13 @@ public class WSServer extends WebSocketServer {
 
 	@Override
 	public void onClose(org.java_websocket.WebSocket conn, int code, String reason, boolean remote) {
-		String sn = null;
-		try {
-			sn = WebSocketPool.removeDeviceByWebsocket(conn);
-		} catch (Exception ex) {
-			logger.warn("Failed removing websocket from pool on close. conn:{}", conn, ex);
-		}
-		if (sn != null && deviceService != null) {
-			Device d1 = deviceService.selectDeviceBySerialNum(sn);
-			if (d1 != null) {
-				deviceService.updateStatusByPrimaryKey(d1.getId(), 0);
-			}
-		}
+		String sn = markDeviceOffline(conn,
+				"close code=" + code + ", reason=" + reason + ", remoteClosed=" + remote, null);
 		Object remoteAddress = null;
 		if (conn != null) {
 			try {
 				remoteAddress = conn.getRemoteSocketAddress();
 			} catch (Exception ignore) {
-				remoteAddress = null;
 			}
 		}
 		logger.info("onClose remote:{} code:{} reason:{} remoteClosed:{} sn:{} wsSize:{}",
@@ -251,7 +271,8 @@ public class WSServer extends WebSocketServer {
 
 	@Override
 	public void onMessage(org.java_websocket.WebSocket conn, String message) {
-		System.out.println("ÃƒÂ¤Ã‚Â¸Ã…Â ÃƒÂ¤Ã‚Â¼Ã‚Â ÃƒÂ¤Ã‚ÂºÃ‚ÂºÃƒÂ¥Ã¢â‚¬ËœÃ‹Å“ÃƒÂ¤Ã‚Â¿Ã‚Â¡ÃƒÂ¦Ã‚ÂÃ‚Â¯-----------------" + message);
+		WebSocketPool.touchDeviceByWebsocket(conn);
+		System.out.println("ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¸Ãƒâ€¦Ã‚Â ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¼Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¿Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¯-----------------" + toConsoleText(message));
 		ObjectMapper objectMapper = new ObjectMapper();
 		String ret;
 
@@ -260,11 +281,11 @@ public class WSServer extends WebSocketServer {
 			String msg = message.replaceAll(",]", "]");
 
 			JsonNode jsonNode = (JsonNode) objectMapper.readValue(msg, JsonNode.class);
-			// System.out.println("ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â°ÃƒÂ¦Ã‚ÂÃ‚Â®"+jsonNode);
+			// System.out.println("ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â®"+jsonNode);
 			if (jsonNode.has("cmd")) {
 				ret = jsonNode.get("cmd").asText();
 				if ("reg".equals(ret)) {
-					System.out.println("ÃƒÂ¨Ã‚Â®Ã‚Â¾ÃƒÂ¥Ã‚Â¤Ã¢â‚¬Â¡ÃƒÂ¤Ã‚Â¿Ã‚Â¡ÃƒÂ¦Ã‚ÂÃ‚Â¯" + jsonNode);
+					System.out.println("ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¿Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¯" + toConsoleText(jsonNode));
 					try {
 
 						this.getDeviceInfo(jsonNode, conn);
@@ -302,7 +323,7 @@ public class WSServer extends WebSocketServer {
 						e.printStackTrace();
 					}
 				} else if ("senduser".equals(ret)) {
-					System.out.println(jsonNode);
+					System.out.println(toConsoleText(jsonNode));
 
 					try {
 						if (jsonNode.has("backupnum")) {
@@ -310,8 +331,10 @@ public class WSServer extends WebSocketServer {
 							if (!isSupportedBackupNum(backupnum)) {
 								SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 								String sn = jsonNode.has("sn") ? jsonNode.get("sn").asText() : null;
-								conn.send("{\"ret\":\"senduser\",\"result\":true,\"cloudtime\":\"" + sdf.format(new Date())
-										+ "\"}");
+								sendJsonIfConnected(conn,
+										"{\"ret\":\"senduser\",\"result\":true,\"cloudtime\":\"" + sdf.format(new Date())
+												+ "\"}",
+										"senduser-unsupported-backup", sn);
 								if (sn != null) {
 									DeviceStatus deviceStatus = new DeviceStatus();
 									deviceStatus.setWebSocket(conn);
@@ -327,7 +350,9 @@ public class WSServer extends WebSocketServer {
 
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
-						conn.send("{\"ret\":\"senduser\",\"result\":false,\"reason\":1}");
+						String sn = jsonNode.has("sn") ? jsonNode.get("sn").asText() : null;
+						sendJsonIfConnected(conn, "{\"ret\":\"senduser\",\"result\":false,\"reason\":1}",
+								"senduser-error-ack", sn);
 						e.printStackTrace();
 					}
 				}
@@ -336,12 +361,12 @@ public class WSServer extends WebSocketServer {
 				ret = jsonNode.get("ret").asText();
 				// boolean result;
 				if ("getuserlist".equals(ret)) {
-					// System.out.println(jsonNode);
-					// System.out.println("ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â°ÃƒÂ¦Ã‚ÂÃ‚Â®"+message);
+					// System.out.println(toConsoleText(jsonNode));
+					// System.out.println("ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â®"+message);
 					this.getUserList(jsonNode, conn);
 
 				} else if ("getuserinfo".equals(ret)) {
-					// System.out.println("jsonÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â°ÃƒÂ¦Ã‚ÂÃ‚Â®"+jsonNode);
+					// System.out.println("jsonÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â®"+jsonNode);
 					this.getUserInfo(jsonNode, conn);
 					String sn = jsonNode.get("sn").asText();
 					DeviceStatus deviceStatus = new DeviceStatus();
@@ -360,11 +385,12 @@ public class WSServer extends WebSocketServer {
 					deviceStatus.setDeviceSn(sn);
 					deviceStatus.setStatus(1);
 					updateDevice(sn, deviceStatus);
-					updateCommandStatus(sn, "setuserinfo", jsonNode);
-					System.out.println("ÃƒÂ¤Ã‚Â¸Ã¢â‚¬Â¹ÃƒÂ¥Ã‚ÂÃ¢â‚¬ËœÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â°ÃƒÂ¦Ã‚ÂÃ‚Â®" + jsonNode);
+					MachineCommand matched = updateCommandStatusAndReturnMatched(sn, "setuserinfo", jsonNode);
+					updateDeviceSyncCursorAfterSetuserinfoAck(sn, matched, jsonNode);
+					System.out.println("ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â®" + toConsoleText(jsonNode));
 				} else if ("getalllog".equals(ret)) {
 
-					System.out.println("ÃƒÂ¨Ã…Â½Ã‚Â·ÃƒÂ¥Ã‚ÂÃ¢â‚¬â€œÃƒÂ¦Ã¢â‚¬Â°Ã¢â€šÂ¬ÃƒÂ¦Ã…â€œÃ¢â‚¬Â°ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Å“ÃƒÂ¥Ã‚ÂÃ‚Â¡ÃƒÂ¨Ã‚Â®Ã‚Â°ÃƒÂ¥Ã‚Â½Ã¢â‚¬Â¢" + jsonNode);
+					System.out.println("ÃƒÆ’Ã‚Â¨Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â·ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢" + toConsoleText(jsonNode));
 					try {
 						this.getAllLog(jsonNode, conn);
 					} catch (Exception e) {
@@ -375,7 +401,7 @@ public class WSServer extends WebSocketServer {
 
 				} else if ("getnewlog".equals(ret)) {
 
-					System.out.println("ÃƒÂ¨Ã…Â½Ã‚Â·ÃƒÂ¥Ã‚ÂÃ¢â‚¬â€œÃƒÂ¦Ã¢â‚¬Â°Ã¢â€šÂ¬ÃƒÂ¦Ã…â€œÃ¢â‚¬Â°ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Å“ÃƒÂ¥Ã‚ÂÃ‚Â¡ÃƒÂ¨Ã‚Â®Ã‚Â°ÃƒÂ¥Ã‚Â½Ã¢â‚¬Â¢" + jsonNode);
+					System.out.println("ÃƒÆ’Ã‚Â¨Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â·ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢" + toConsoleText(jsonNode));
 					try {
 						this.getnewLog(jsonNode, conn);
 					} catch (Exception e) {
@@ -391,7 +417,7 @@ public class WSServer extends WebSocketServer {
 					deviceStatus.setDeviceSn(sn);
 					deviceStatus.setStatus(1);
 					updateDevice(sn, deviceStatus);
-					System.out.println("ÃƒÂ¥Ã‹â€ Ã‚Â ÃƒÂ©Ã¢â€žÂ¢Ã‚Â¤ÃƒÂ¤Ã‚ÂºÃ‚ÂºÃƒÂ¥Ã¢â‚¬ËœÃ‹Å“" + jsonNode);
+					System.out.println("ÃƒÆ’Ã‚Â¥Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â©ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Ãƒâ€¹Ã…â€œ" + toConsoleText(jsonNode));
 					updateCommandStatus(sn, "deleteuser");
 				} else if ("initsys".equals(ret)) {
 					String sn = jsonNode.get("sn").asText();
@@ -400,7 +426,7 @@ public class WSServer extends WebSocketServer {
 					deviceStatus.setDeviceSn(sn);
 					deviceStatus.setStatus(1);
 					updateDevice(sn, deviceStatus);
-					System.out.println("ÃƒÂ¥Ã‹â€ Ã‚ÂÃƒÂ¥Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ¥Ã…â€™Ã¢â‚¬â€œÃƒÂ§Ã‚Â³Ã‚Â»ÃƒÂ§Ã‚Â»Ã…Â¸" + jsonNode);
+					System.out.println("ÃƒÆ’Ã‚Â¥Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â§ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â¥Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÆ’Ã‚Â§Ãƒâ€šÃ‚Â³Ãƒâ€šÃ‚Â»ÃƒÆ’Ã‚Â§Ãƒâ€šÃ‚Â»Ãƒâ€¦Ã‚Â¸" + toConsoleText(jsonNode));
 					updateCommandStatus(sn, "initsys");
 				} else if ("setdevlock".equals(ret)) {
 					String sn = jsonNode.get("sn").asText();
@@ -409,7 +435,7 @@ public class WSServer extends WebSocketServer {
 					deviceStatus.setDeviceSn(sn);
 					deviceStatus.setStatus(1);
 					updateDevice(sn, deviceStatus);
-					System.out.println("ÃƒÂ¨Ã‚Â®Ã‚Â¾ÃƒÂ§Ã‚Â½Ã‚Â®ÃƒÂ¥Ã‚Â¤Ã‚Â©ÃƒÂ¦Ã¢â‚¬â€Ã‚Â¶ÃƒÂ©Ã¢â‚¬â€Ã‚Â´ÃƒÂ¦Ã‚Â®Ã‚Âµ" + jsonNode);
+					System.out.println("ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â§Ãƒâ€šÃ‚Â½Ãƒâ€šÃ‚Â®ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â¶ÃƒÆ’Ã‚Â©ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Âµ" + toConsoleText(jsonNode));
 					updateCommandStatus(sn, "setdevlock");
 				} else if ("setuserlock".equals(ret)) {
 					String sn = jsonNode.get("sn").asText();
@@ -418,8 +444,17 @@ public class WSServer extends WebSocketServer {
 					deviceStatus.setDeviceSn(sn);
 					deviceStatus.setStatus(1);
 					updateDevice(sn, deviceStatus);
-					System.out.println("ÃƒÂ©Ã¢â‚¬â€Ã‚Â¨ÃƒÂ§Ã‚Â¦Ã‚ÂÃƒÂ¦Ã…Â½Ã‹â€ ÃƒÂ¦Ã‚ÂÃ†â€™" + jsonNode);
+					System.out.println("ÃƒÆ’Ã‚Â©ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â§Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã‚Â½Ãƒâ€¹Ã¢â‚¬Â ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€ Ã¢â‚¬â„¢" + toConsoleText(jsonNode));
 					updateCommandStatus(sn, "setuserlock");
+				} else if ("setdevinfo".equals(ret)) {
+					String sn = jsonNode.get("sn").asText();
+					DeviceStatus deviceStatus = new DeviceStatus();
+					deviceStatus.setWebSocket(conn);
+					deviceStatus.setDeviceSn(sn);
+					deviceStatus.setStatus(1);
+					updateDevice(sn, deviceStatus);
+					logger.info("Device no-sleep config ack received. sn:{} payload:{}", sn, toConsoleText(jsonNode));
+					updateCommandStatus(sn, "setdevinfo");
 				} else if ("getdevinfo".equals(ret)) {
 					String sn = jsonNode.get("sn").asText();
 					DeviceStatus deviceStatus = new DeviceStatus();
@@ -427,7 +462,9 @@ public class WSServer extends WebSocketServer {
 					deviceStatus.setDeviceSn(sn);
 					deviceStatus.setStatus(1);
 					updateDevice(sn, deviceStatus);
-					System.out.println(new Date() + "ÃƒÂ¨Ã‚Â®Ã‚Â¾ÃƒÂ¥Ã‚Â¤Ã¢â‚¬Â¡ÃƒÂ¤Ã‚Â¿Ã‚Â¡ÃƒÂ¦Ã‚ÂÃ‚Â¯" + jsonNode);
+					/*
+					System.out.println(new Date() + "ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¿Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¯" + toConsoleText(jsonNode));
+					*/
 					updateCommandStatus(sn, "getdevinfo");
 					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -442,7 +479,7 @@ public class WSServer extends WebSocketServer {
 					deviceStatus.setDeviceSn(sn);
 					deviceStatus.setStatus(1);
 					updateDevice(sn, deviceStatus);
-					System.out.println(new Date() + "ÃƒÂ¤Ã‚Â¸Ã¢â‚¬Â¹ÃƒÂ¥Ã‚ÂÃ¢â‚¬ËœÃƒÂ¥Ã‚Â§Ã¢â‚¬Å“ÃƒÂ¥Ã‚ÂÃ‚Â" + jsonNode);
+					System.out.println(new Date() + "ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â§ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â" + toConsoleText(jsonNode));
 					updateCommandStatus(sn, "setusername");
 				} else if ("reboot".equals(ret)) {
 					String sn = jsonNode.get("sn").asText();
@@ -539,7 +576,7 @@ public class WSServer extends WebSocketServer {
 		}
 	}
 
-	/* websocketÃƒÂ©Ã¢â‚¬Å“Ã‚Â¾ÃƒÂ¦Ã…Â½Ã‚Â¥ÃƒÂ¥Ã‚ÂÃ¢â‚¬ËœÃƒÂ§Ã¢â‚¬ÂÃ…Â¸ÃƒÂ©Ã¢â‚¬ÂÃ¢â€žÂ¢ÃƒÂ¨Ã‚Â¯Ã‚Â¯ÃƒÂ§Ã…Â¡Ã¢â‚¬Å¾ÃƒÂ¦Ã¢â‚¬â€Ã‚Â¶ÃƒÂ¥Ã¢â€šÂ¬Ã¢â€žÂ¢ */
+	/* websocketÃƒÆ’Ã‚Â©ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“ÃƒÆ’Ã‚Â§ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€¦Ã‚Â¸ÃƒÆ’Ã‚Â©ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â¯Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã‚Â§Ãƒâ€¦Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â¶ÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ */
 	@Override
 	public void onError(org.java_websocket.WebSocket conn, Exception ex) {
 		if (ex instanceof BindException) {
@@ -549,11 +586,20 @@ public class WSServer extends WebSocketServer {
 		logger.error("WebSocket error conn:{}", conn, ex);
 		ex.printStackTrace();
 		if (conn != null) {
-			conn.close();
-			WebSocketPool.removeDeviceByWebsocket(conn);
+			try {
+				conn.close();
+			} catch (Exception ignore) {
+			}
+			markDeviceOffline(conn, "error", ex);
 		}
-		// System.out.println("socketÃƒÂ¦Ã¢â‚¬â€œÃ‚Â­ÃƒÂ¥Ã‚Â¼Ã¢â€šÂ¬ÃƒÂ¤Ã‚ÂºÃ¢â‚¬Â ");
-		System.out.println("socketÃƒÂ¨Ã‚Â¿Ã…Â¾ÃƒÂ¦Ã…Â½Ã‚Â¥ÃƒÂ¦Ã¢â‚¬â€œÃ‚Â­ÃƒÂ¥Ã‚Â¼Ã¢â€šÂ¬ÃƒÂ¤Ã‚ÂºÃ¢â‚¬Â " + conn);
+		// System.out.println("socketÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â¼ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚ÂºÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ");
+		System.out.println("socketÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â¿Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â¼ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚ÂºÃƒÂ¢Ã¢â€šÂ¬Ã‚Â " + conn);
+	}
+
+	@Override
+	public void onWebsocketPong(WebSocket conn, Framedata f) {
+		super.onWebsocketPong(conn, f);
+		WebSocketPool.touchDeviceByWebsocket(conn);
 	}
 
 	public void onStart() {
@@ -690,6 +736,34 @@ public class WSServer extends WebSocketServer {
 		}
 	}
 
+	private void sendJsonIfConnected(WebSocket conn, String payload, String context, String sn) {
+		if (conn == null || payload == null) {
+			return;
+		}
+		try {
+			if (!conn.isOpen()) {
+				logger.warn("Skip websocket send because connection is closed. context:{} sn:{} remote:{}", context, sn,
+						safeRemoteSocketAddress(conn));
+				return;
+			}
+			conn.send(payload);
+		} catch (WebsocketNotConnectedException ex) {
+			logger.warn("Skip websocket send because connection is not connected. context:{} sn:{} remote:{}", context,
+					sn, safeRemoteSocketAddress(conn));
+		}
+	}
+
+	private String safeRemoteSocketAddress(WebSocket conn) {
+		if (conn == null) {
+			return "unknown";
+		}
+		try {
+			return String.valueOf(conn.getRemoteSocketAddress());
+		} catch (Exception ex) {
+			return "unknown";
+		}
+	}
+
 	private MachineCommand findMatchingPendingCommand(List<MachineCommand> pending, String commandType, JsonNode response) {
 		if (pending == null || commandType == null) {
 			return null;
@@ -714,7 +788,7 @@ public class WSServer extends WebSocketServer {
 			return false;
 		}
 		try {
-			JsonNode cmdNode = commandObjectMapper.readTree(commandContent);
+			JsonNode cmdNode = extractCommandPayloadNode(commandContent);
 			if (!cmdNode.has("enrollid")) {
 				return false;
 			}
@@ -728,7 +802,7 @@ public class WSServer extends WebSocketServer {
 			}
 			return true;
 		} catch (Exception ex) {
-			logger.debug("Failed to parse setuserinfo command content for matching: {}", commandContent, ex);
+			logger.debug("Failed to parse setuserinfo command content for matching: {}", toConsoleText(commandContent), ex);
 			String normalized = commandContent.replace(" ", "");
 			String enrollToken = "\"enrollid\":" + response.get("enrollid").asLong();
 			if (!normalized.contains(enrollToken)) {
@@ -740,6 +814,108 @@ public class WSServer extends WebSocketServer {
 			}
 			return true;
 		}
+	}
+
+	private JsonNode extractCommandPayloadNode(String payload) throws IOException {
+		JsonNode node = commandObjectMapper.readTree(payload);
+		if (node != null && node.has("payload") && node.get("payload") != null && node.get("payload").isObject()) {
+			return node.get("payload");
+		}
+		return node;
+	}
+
+	private Long extractEnrollIdFromSetuserinfoPayload(String payload) {
+		if (payload == null || payload.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			JsonNode node = extractCommandPayloadNode(payload);
+			if (node != null && node.has("enrollid")) {
+				return Long.valueOf(node.get("enrollid").asLong());
+			}
+		} catch (Exception ignore) {
+		}
+		return null;
+	}
+
+	private Long extractSourceRowIdFromSetuserinfoPayload(String payload) {
+		if (payload == null || payload.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			JsonNode node = commandObjectMapper.readTree(payload);
+			if (node != null && node.has("meta") && node.get("meta") != null && node.get("meta").has("sourceRowId")) {
+				return Long.valueOf(node.get("meta").get("sourceRowId").asLong());
+			}
+		} catch (Exception ignore) {
+		}
+		return null;
+	}
+
+	private void updateDeviceSyncCursorAfterSetuserinfoAck(String serial, MachineCommand matched, JsonNode response) {
+		if (serial == null || matched == null || response == null || !response.has("result")
+				|| !response.get("result").asBoolean()) {
+			return;
+		}
+		Long sourceRowId = extractSourceRowIdFromSetuserinfoPayload(matched.getContent());
+		if (sourceRowId == null || sourceRowId.longValue() <= 0L) {
+			return;
+		}
+		advanceDeviceSyncCursor(serial, sourceRowId.longValue());
+	}
+
+	private void advanceDeviceSyncCursor(String serial, long sourceRowId) {
+		if (dataSource == null || serial == null || serial.trim().isEmpty() || sourceRowId <= 0L) {
+			return;
+		}
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		ensureDeviceUserSyncStateTable(jdbcTemplate);
+		String message = "Acked through source row id " + sourceRowId + ".";
+		int updated = jdbcTemplate.update(
+				"UPDATE " + DEVICE_USER_SYNC_STATE_TABLE
+						+ " SET LAST_SYNC_USER_ID = CASE WHEN ISNULL(LAST_SYNC_USER_ID, 0) < ? THEN ? ELSE LAST_SYNC_USER_ID END, "
+						+ "LAST_SYNC_STATUS = ?, LAST_SYNC_MESSAGE = ?, UPDATED_AT = SYSDATETIME() WHERE DEVICE_SN = ?",
+				Long.valueOf(sourceRowId), Long.valueOf(sourceRowId), DB_SYNC_STATE_SUCCESS, message, serial);
+		if (updated > 0) {
+			return;
+		}
+		jdbcTemplate.update(
+				"INSERT INTO " + DEVICE_USER_SYNC_STATE_TABLE
+						+ " (DEVICE_SN, LAST_SYNC_STATUS, LAST_SYNC_AT, LAST_SYNC_STARTED_AT, LAST_SYNC_FINISHED_AT, LAST_SYNC_MESSAGE, "
+						+ "LAST_SYNC_USER_ID, LAST_QUEUED_SETUSERINFO, LAST_QUEUED_CLEANADMIN, LAST_ERROR_MESSAGE, TOTAL_RUNS, UPDATED_AT) "
+						+ "VALUES (?, ?, NULL, NULL, NULL, ?, ?, 0, 0, NULL, 0, SYSDATETIME())",
+				serial, DB_SYNC_STATE_SUCCESS, message, Long.valueOf(sourceRowId));
+	}
+
+	private void ensureDeviceUserSyncStateTable(JdbcTemplate jdbcTemplate) {
+		if (deviceUserSyncStateTableEnsured || jdbcTemplate == null) {
+			return;
+		}
+		String ddl = "IF OBJECT_ID('dbo." + DEVICE_USER_SYNC_STATE_TABLE + "', 'U') IS NULL "
+				+ "BEGIN "
+				+ "CREATE TABLE dbo." + DEVICE_USER_SYNC_STATE_TABLE + " ("
+				+ "DEVICE_SN VARCHAR(100) NOT NULL PRIMARY KEY, "
+				+ "LAST_SYNC_STATUS VARCHAR(20) NOT NULL DEFAULT 'NEVER', "
+				+ "LAST_SYNC_AT DATETIME2(0) NULL, "
+				+ "LAST_SYNC_STARTED_AT DATETIME2(0) NULL, "
+				+ "LAST_SYNC_FINISHED_AT DATETIME2(0) NULL, "
+				+ "LAST_SYNC_MESSAGE NVARCHAR(2000) NULL, "
+				+ "LAST_SYNC_USER_ID BIGINT NOT NULL DEFAULT 0, "
+				+ "LAST_QUEUED_SETUSERINFO INT NOT NULL DEFAULT 0, "
+				+ "LAST_QUEUED_CLEANADMIN INT NOT NULL DEFAULT 0, "
+				+ "LAST_ERROR_MESSAGE NVARCHAR(2000) NULL, "
+				+ "TOTAL_RUNS BIGINT NOT NULL DEFAULT 0, "
+				+ "UPDATED_AT DATETIME2(0) NOT NULL DEFAULT SYSDATETIME()"
+				+ "); "
+				+ "END; "
+				+ "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_" + DEVICE_USER_SYNC_STATE_TABLE
+				+ "_UPDATED_AT' AND object_id = OBJECT_ID('dbo." + DEVICE_USER_SYNC_STATE_TABLE + "')) "
+				+ "BEGIN "
+				+ "CREATE INDEX IX_" + DEVICE_USER_SYNC_STATE_TABLE + "_UPDATED_AT ON dbo."
+				+ DEVICE_USER_SYNC_STATE_TABLE + " (UPDATED_AT DESC); "
+				+ "END;";
+		jdbcTemplate.execute(ddl);
+		deviceUserSyncStateTableEnsured = true;
 	}
 
 	private Long extractEnrollIdFromEnablePayload(String payload) {
@@ -784,10 +960,10 @@ public class WSServer extends WebSocketServer {
 		return sb.toString();
 	}
 
-	// ÃƒÂ¨Ã…Â½Ã‚Â·ÃƒÂ¥Ã‚Â¾Ã¢â‚¬â€ÃƒÂ¨Ã‚Â¿Ã…Â¾ÃƒÂ¦Ã…Â½Ã‚Â¥ÃƒÂ¨Ã‚Â®Ã‚Â¾ÃƒÂ¥Ã‚Â¤Ã¢â‚¬Â¡ÃƒÂ¤Ã‚Â¿Ã‚Â¡ÃƒÂ¦Ã‚ÂÃ‚Â¯
+	// ÃƒÆ’Ã‚Â¨Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â·ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â¿Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¿Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¯
 	public void getDeviceInfo(JsonNode jsonNode, org.java_websocket.WebSocket args1) {
 		String sn = jsonNode.get("sn").asText();
-		System.out.println("ÃƒÂ¥Ã‚ÂºÃ‚ÂÃƒÂ¥Ã‹â€ Ã¢â‚¬â€ÃƒÂ¥Ã‚ÂÃ‚Â·" + sn);
+		System.out.println("ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¥Ãƒâ€¹Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â·" + sn);
 		DeviceStatus deviceStatus = new DeviceStatus();
 		if (sn != null) {
 			ensureNetworkMapping(sn);
@@ -834,17 +1010,137 @@ public class WSServer extends WebSocketServer {
 	}
 
 	public void updateDevice(String sn, DeviceStatus deviceStatus) {
-		if (WebSocketPool.getDeviceStatus(sn) != null) {
-			// WebSocketPool.removeDeviceStatus(sn);
-			WebSocketPool.addDeviceAndStatus(sn, deviceStatus);
+		String normalizedSn = normalizeSerial(sn);
+		if (normalizedSn == null || deviceStatus == null) {
+			return;
+		}
+		deviceStatus.setDeviceSn(normalizedSn);
+		deviceStatus.setStatus(1);
+		deviceStatus.touch();
+		WebSocket webSocket = deviceStatus.getWebSocket();
+		if (webSocket != null) {
+			try {
+				webSocket.setAttachment(normalizedSn);
+			} catch (Exception ignore) {
+			}
+		}
+		WebSocketPool.addDeviceAndStatus(normalizedSn, deviceStatus);
+	}
+
+	private String markDeviceOffline(WebSocket conn, String reason, Throwable cause) {
+		String sn = resolveSerialFromConnection(conn);
+		try {
+			String removedSn = WebSocketPool.removeDeviceByWebsocket(conn);
+			if (sn == null) {
+				sn = removedSn;
+			}
+		} catch (Exception ex) {
+			logger.warn("Failed removing websocket from pool. conn:{}", conn, ex);
+		}
+		markDeviceOffline(sn, reason, cause);
+		return sn;
+	}
+
+	private void markDeviceOffline(String sn, String reason, Throwable cause) {
+		String normalizedSn = normalizeSerial(sn);
+		if (normalizedSn == null) {
+			return;
+		}
+		WebSocketPool.removeDeviceStatus(normalizedSn);
+		requeuePendingCommandsForReconnect(normalizedSn, reason);
+		if (deviceService != null) {
+			try {
+				Device device = deviceService.selectDeviceBySerialNum(normalizedSn);
+				if (device != null && device.getId() != null) {
+					deviceService.updateStatusByPrimaryKey(device.getId(), 0);
+				}
+			} catch (Exception ex) {
+				logger.warn("Failed updating device offline state. sn:{} reason:{}", normalizedSn, reason, ex);
+			}
+		}
+		if (cause == null) {
+			logger.warn("Marked websocket device offline. sn:{} reason:{}", normalizedSn, reason);
 		} else {
-			WebSocketPool.addDeviceAndStatus(sn, deviceStatus);
+			logger.warn("Marked websocket device offline. sn:{} reason:{}", normalizedSn, reason, cause);
+		}
+	}
+
+	private String resolveSerialFromConnection(WebSocket conn) {
+		if (conn == null) {
+			return null;
+		}
+		try {
+			Object attachment = conn.getAttachment();
+			if (attachment instanceof String) {
+				String attachedSn = normalizeSerial((String) attachment);
+				if (attachedSn != null) {
+					return attachedSn;
+				}
+			}
+		} catch (Exception ignore) {
+		}
+		return WebSocketPool.getSerialNumber(conn);
+	}
+
+	private void requeuePendingCommandsForReconnect(String normalizedSn, String reason) {
+		if (normalizedSn == null || machineCommandMapper == null) {
+			return;
+		}
+		try {
+			List<MachineCommand> inFlightCommands = machineCommandMapper.findPendingCommand(1, normalizedSn);
+			if (inFlightCommands == null || inFlightCommands.isEmpty()) {
+				return;
+			}
+			int requeued = 0;
+			Date now = new Date();
+			for (MachineCommand command : inFlightCommands) {
+				if (command == null || command.getId() == null) {
+					continue;
+				}
+				command.setStatus(Integer.valueOf(0));
+				command.setSendStatus(Integer.valueOf(0));
+				command.setRunTime(null);
+				command.setGmtModified(now);
+				machineCommandMapper.updateByPrimaryKey(command);
+				requeued++;
+			}
+			if (requeued > 0) {
+				logger.warn("Re-queued {} in-flight commands for reconnect. sn:{} reason:{}", Integer.valueOf(requeued),
+						normalizedSn, reason);
+			}
+		} catch (Exception ex) {
+			logger.warn("Failed re-queueing in-flight commands for reconnect. sn:{} reason:{}", normalizedSn, reason, ex);
+		}
+	}
+
+	private void resetKnownDeviceStatusesOnServerStart() {
+		WebSocketPool.wsDevice.clear();
+		if (deviceService == null) {
+			return;
+		}
+		try {
+			List<Device> devices = deviceService.findAllDevice();
+			if (devices == null || devices.isEmpty()) {
+				return;
+			}
+			int resetCount = 0;
+			for (Device device : devices) {
+				if (device == null || device.getId() == null) {
+					continue;
+				}
+				deviceService.updateStatusByPrimaryKey(device.getId().intValue(), 0);
+				resetCount++;
+			}
+			logger.info("Reset {} device statuses to offline before websocket accept loop starts.",
+					Integer.valueOf(resetCount));
+		} catch (Exception ex) {
+			logger.warn("Failed resetting device statuses during websocket startup.", ex);
 		}
 	}
 
 	private void relayMasterRegistrationIfNeeded(String sourceSn, Long enrollId, String name, int admin, int backupnum,
 			String record) {
-		if (!isMasterSyncSource(sourceSn)) {
+		if (!shouldRelayRegistrationFromSource(sourceSn)) {
 			return;
 		}
 		if (enrollId == null || !isSupportedBackupNum(backupnum)) {
@@ -852,17 +1148,23 @@ public class WSServer extends WebSocketServer {
 		}
 		List<Device> devices = deviceService == null ? null : deviceService.findAllDevice();
 		if (devices == null || devices.isEmpty()) {
-			updateMasterSyncStats(sourceSn, enrollId, backupnum, 0, "Master record received but no devices are registered.");
+			if (isMasterSyncSource(sourceSn)) {
+				updateMasterSyncStats(sourceSn, enrollId, backupnum, 0,
+						"Master record received but no devices are registered.");
+			}
 			return;
 		}
 
 		String payload = buildSetUserInfoRelayPayload(enrollId, name, backupnum, admin, record);
 		if (payload == null || payload.trim().isEmpty()) {
-			updateMasterSyncStats(sourceSn, enrollId, backupnum, 0, "Master record skipped due to empty relay payload.");
+			if (isMasterSyncSource(sourceSn)) {
+				updateMasterSyncStats(sourceSn, enrollId, backupnum, 0, "Master record skipped due to empty relay payload.");
+			}
 			return;
 		}
 
 		int queued = 0;
+		List<String> queuedTargets = new ArrayList<String>();
 		String normalizedSource = normalizeSerial(sourceSn);
 		for (Device device : devices) {
 			if (device == null) {
@@ -877,7 +1179,10 @@ public class WSServer extends WebSocketServer {
 			}
 			try {
 				queueMachineCommand(targetSn, "setuserinfo", payload);
+				rememberRecentRelayTarget(targetSn, enrollId, backupnum, record);
 				queued++;
+				queuedTargets.add(targetSn);
+				logRegistrationRelayTarget("master-relay", sourceSn, targetSn, enrollId, name, backupnum, record);
 			} catch (Exception ex) {
 				logger.warn("Failed queueing master relay command. sourceSn={} targetSn={} enrollId={} backupnum={}",
 						sourceSn, targetSn, enrollId, backupnum, ex);
@@ -887,7 +1192,10 @@ public class WSServer extends WebSocketServer {
 		String relayMessage = queued > 0
 				? ("Relayed master registration to " + queued + " devices.")
 				: "Master registration received but no target device was eligible.";
-		updateMasterSyncStats(sourceSn, enrollId, backupnum, queued, relayMessage);
+		logRegistrationRelaySummary("master-relay", sourceSn, enrollId, name, backupnum, queuedTargets);
+		if (isMasterSyncSource(sourceSn)) {
+			updateMasterSyncStats(sourceSn, enrollId, backupnum, queued, relayMessage);
+		}
 	}
 
 	private boolean shouldRelayRegistrationFromSource(String sourceSn) {
@@ -947,6 +1255,7 @@ public class WSServer extends WebSocketServer {
 		}
 		String normalizedSource = normalizeSerial(sourceSn);
 		int queued = 0;
+		List<String> queuedTargets = new ArrayList<String>();
 		for (Device device : devices) {
 			if (device == null) {
 				continue;
@@ -960,7 +1269,10 @@ public class WSServer extends WebSocketServer {
 			}
 			try {
 				queueMachineCommand(targetSn, "setuserinfo", payload);
+				rememberRecentRelayTarget(targetSn, enrollId, backupnum, relayRecord);
 				queued++;
+				queuedTargets.add(targetSn);
+				logRegistrationRelayTarget("db-relay", sourceSn, targetSn, enrollId, relayName, backupnum, relayRecord);
 			} catch (Exception ex) {
 				logger.warn("Failed queueing registration DB relay. sourceSn={} targetSn={} enrollId={} backupnum={}",
 						sourceSn, targetSn, enrollId, backupnum, ex);
@@ -971,6 +1283,7 @@ public class WSServer extends WebSocketServer {
 			logger.info("Registration DB relay queued. sourceSn={} enrollId={} backupnum={} queuedTargets={}", sourceSn,
 					enrollId, backupnum, queued);
 		}
+		logRegistrationRelaySummary("db-relay", sourceSn, enrollId, relayName, backupnum, queuedTargets);
 		if (isMasterSyncSource(sourceSn)) {
 			String relayMessage = queued > 0
 					? ("Relayed master registration to " + queued + " devices.")
@@ -990,6 +1303,55 @@ public class WSServer extends WebSocketServer {
 				return false;
 			}
 			return masterSyncSourceSn.equalsIgnoreCase(normalizedSource);
+		}
+	}
+
+	private void rememberRecentRelayTarget(String targetSn, Long enrollId, int backupnum, String record) {
+		String key = buildRecentRelayEchoKey(targetSn, enrollId, backupnum, record);
+		if (key == null) {
+			return;
+		}
+		pruneExpiredRelayEchoMarkersIfNeeded();
+		recentRelayEchoExpiryByKey.put(key, System.currentTimeMillis() + RELAY_ECHO_TTL_MS);
+	}
+
+	private boolean isRecentRelayEcho(String sourceSn, Long enrollId, int backupnum, String record) {
+		String key = buildRecentRelayEchoKey(sourceSn, enrollId, backupnum, record);
+		if (key == null) {
+			return false;
+		}
+		Long expiresAt = recentRelayEchoExpiryByKey.get(key);
+		if (expiresAt == null) {
+			return false;
+		}
+		long now = System.currentTimeMillis();
+		if (expiresAt.longValue() < now) {
+			recentRelayEchoExpiryByKey.remove(key, expiresAt);
+			return false;
+		}
+		return true;
+	}
+
+	private String buildRecentRelayEchoKey(String serial, Long enrollId, int backupnum, String record) {
+		String normalizedSerial = normalizeSerial(serial);
+		if (normalizedSerial == null || enrollId == null) {
+			return null;
+		}
+		String normalizedRecord = record == null ? "" : record;
+		return normalizedSerial + "|" + enrollId.longValue() + "|" + backupnum + "|" + normalizedRecord.length() + "|"
+				+ Integer.toHexString(normalizedRecord.hashCode());
+	}
+
+	private void pruneExpiredRelayEchoMarkersIfNeeded() {
+		if (recentRelayEchoExpiryByKey.size() < RELAY_ECHO_TRACKING_MAX) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		for (Map.Entry<String, Long> entry : recentRelayEchoExpiryByKey.entrySet()) {
+			Long expiresAt = entry.getValue();
+			if (expiresAt == null || expiresAt.longValue() < now) {
+				recentRelayEchoExpiryByKey.remove(entry.getKey(), expiresAt);
+			}
 		}
 	}
 
@@ -1066,10 +1428,10 @@ public class WSServer extends WebSocketServer {
 		}
 	}
 
-	// ÃƒÂ¨Ã…Â½Ã‚Â·ÃƒÂ¥Ã‚Â¾Ã¢â‚¬â€ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Å“ÃƒÂ¥Ã‚ÂÃ‚Â¡ÃƒÂ¨Ã‚Â®Ã‚Â°ÃƒÂ¥Ã‚Â½Ã¢â‚¬Â¢ÃƒÂ¯Ã‚Â¼Ã…â€™ÃƒÂ¥Ã…â€™Ã¢â‚¬Â¦ÃƒÂ¦Ã¢â‚¬Â¹Ã‚Â¬ÃƒÂ¦Ã…â€œÃ‚ÂºÃƒÂ¥Ã¢â€žÂ¢Ã‚Â¨ÃƒÂ¥Ã‚ÂÃ‚Â·
+	// ÃƒÆ’Ã‚Â¨Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â·ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¼Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¥Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â·
 	private void getAttandence(JsonNode jsonNode, org.java_websocket.WebSocket conn) {
 		// TODO Auto-generated method stub
-		// System.out.println("ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Å“ÃƒÂ¥Ã‚ÂÃ‚Â¡ÃƒÂ¨Ã‚Â®Ã‚Â°ÃƒÂ¥Ã‚Â½Ã¢â‚¬Â¢-----------"+jsonNode);
+		// System.out.println("ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢-----------"+jsonNode);
 		String sn = jsonNode.get("sn").asText();
 		ensureNetworkMapping(sn);
 		Integer gateInOutOverride = resolveGateInOutOverride(sn);
@@ -1081,7 +1443,7 @@ public class WSServer extends WebSocketServer {
 		}
 		// int logindex=jsonNode.get("logindex").asInt();
 		List<Records> recordAll = new ArrayList<Records>();
-		// System.out.println(jsonNode);
+		// System.out.println(toConsoleText(jsonNode));
 		JsonNode records = jsonNode.get("record");
 		DeviceStatus deviceStatus = new DeviceStatus();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -1104,7 +1466,7 @@ public class WSServer extends WebSocketServer {
 					temperature = type.get("temp").asDouble();
 					temperature = temperature / 10;
 					temperature = (double) Math.round(temperature * 10) / 10;
-					System.out.println("ÃƒÂ¦Ã‚Â¸Ã‚Â©ÃƒÂ¥Ã‚ÂºÃ‚Â¦ÃƒÂ¥Ã¢â€šÂ¬Ã‚Â¼" + temperature);
+					System.out.println("ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¼" + temperature);
 					obj.put("temperature", String.valueOf(temperature));
 				}
 				Records record = new Records();
@@ -1157,8 +1519,7 @@ public class WSServer extends WebSocketServer {
 				conn.send("{\"ret\":\"sendlog\",\"result\":true" + ",\"count\":" + count + ",\"logindex\":" + logindex
 						+ ",\"cloudtime\":\"" + sdf.format(new Date()) + "\"}");
 			} else if (logindex < 0) {
-				conn.send(
-						"{\"ret\":\"sendlog\",\"result\":true" + ",\"cloudtime\":\"" + sdf.format(new Date()) + "\"}");
+				conn.send("{\"ret\":\"sendlog\",\"result\":true" + ",\"cloudtime\":\"" + sdf.format(new Date()) + "\"}");
 			}
 			/*
 			 * conn.send("{\"ret\":\"sendlog\",\"result\":true"+",\"count\":"+count+
@@ -1188,7 +1549,7 @@ public class WSServer extends WebSocketServer {
 
 	}
 
-	// ÃƒÂ¨Ã…Â½Ã‚Â·ÃƒÂ¥Ã‚ÂÃ¢â‚¬â€œÃƒÂ¦Ã…â€œÃ‚ÂºÃƒÂ¥Ã¢â€žÂ¢Ã‚Â¨ÃƒÂ¦Ã…Â½Ã‚Â¨ÃƒÂ©Ã¢â€šÂ¬Ã‚ÂÃƒÂ¦Ã‚Â³Ã‚Â¨ÃƒÂ¥Ã¢â‚¬Â Ã…â€™ÃƒÂ¤Ã‚Â¿Ã‚Â¡ÃƒÂ¦Ã‚ÂÃ‚Â¯
+	// ÃƒÆ’Ã‚Â¨Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â·ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¦Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â©ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚Â³Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¤Ãƒâ€šÃ‚Â¿Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¯
 	private void getEnrollInfo(JsonNode jsonNode, org.java_websocket.WebSocket conn) {
 		// TODO Auto-generated method stub
 		// System.out.println("??????????????????????????????????????????????????????????????????????????????"+(conn.getData()).getClass());
@@ -1200,7 +1561,8 @@ public class WSServer extends WebSocketServer {
 		String signatures1 = jsonNode.get("record").asText();
 		DeviceStatus deviceStatus = new DeviceStatus();
 		if (signatures1 == null) {
-			conn.send("{\"ret\":\"senduser\",\"result\":false,\"reason\":1}");
+			sendJsonIfConnected(conn, "{\"ret\":\"senduser\",\"result\":false,\"reason\":1}", "senduser-missing-record",
+					sn);
 			deviceStatus.setWebSocket(conn);
 			deviceStatus.setStatus(1);
 			deviceStatus.setDeviceSn(sn);
@@ -1208,7 +1570,9 @@ public class WSServer extends WebSocketServer {
 		} else {
 			int backupnum = jsonNode.get("backupnum").asInt();
 			if (!isSupportedBackupNum(backupnum)) {
-				conn.send("{\"ret\":\"senduser\",\"result\":true,\"cloudtime\":\"" + sdf.format(new Date()) + "\"}");
+				sendJsonIfConnected(conn,
+						"{\"ret\":\"senduser\",\"result\":true,\"cloudtime\":\"" + sdf.format(new Date()) + "\"}",
+						"senduser-unsupported-backup", sn);
 				deviceStatus.setWebSocket(conn);
 				deviceStatus.setStatus(1);
 				deviceStatus.setDeviceSn(sn);
@@ -1226,6 +1590,10 @@ public class WSServer extends WebSocketServer {
 			person.setName(name);
 			person.setRollId(rollId);
 			Person existingPerson = personService.selectByPrimaryKey(enrollId);
+			EnrollInfo existingInfo = enrollInfoService.selectByBackupnum(enrollId, backupnum);
+			boolean relayEcho = isRecentRelayEcho(sn, enrollId, backupnum, signatures);
+			boolean sameDbRegistration = isSameDbRegistrationSnapshot(existingPerson, existingInfo, name, backupnum,
+					signatures);
 			if (existingPerson == null) {
 				personService.insert(person);
 			} else {
@@ -1237,26 +1605,33 @@ public class WSServer extends WebSocketServer {
 			enrollInfo.setEnrollId(enrollId);
 			enrollInfo.setBackupnum(backupnum);
 			enrollInfo.setSignatures(signatures);
-			EnrollInfo existingInfo = enrollInfoService.selectByBackupnum(enrollId, backupnum);
 			String exportedImagePath = null;
 			if (backupnum == 50) {
 				logger.info("Dynamic face local image write disabled for senduser. sn={} enrollId={} backupnum={}",
 						sn, enrollId, backupnum);
 			}
-			if (existingInfo == null) {
-				enrollInfoService.insertSelective(enrollInfo);
-			} else {
-				existingInfo.setSignatures(signatures);
-				enrollInfoService.updateByPrimaryKeyWithBLOBs(existingInfo);
-			}
+			boolean persistedForRelay = upsertEnrollInfoWithStorageFallback("senduser", sn, existingInfo, enrollInfo);
+			logRegistrationSaved("senduser", sn, enrollId, name, rollId, backupnum, signatures, persistedForRelay);
 			exportUserInfoRecord(sn, enrollId, name, rollId, backupnum, signatures, exportedImagePath, "senduser");
 			try {
-				relayRegistrationFromDatabaseIfNeeded(sn, enrollId, name, rollId, backupnum);
+				if (relayEcho) {
+					logger.debug("Skip re-relay for recent setuserinfo echo. sourceSn={} enrollId={} backupnum={}",
+							sn, enrollId, backupnum);
+				} else if (sameDbRegistration) {
+					logger.debug("Skip re-relay because same registration is already in DB. sourceSn={} enrollId={} backupnum={}",
+							sn, enrollId, backupnum);
+				} else if (!persistedForRelay && backupnum == 50) {
+					relayMasterRegistrationIfNeeded(sn, enrollId, name, rollId, backupnum, signatures);
+				} else {
+					relayRegistrationFromDatabaseIfNeeded(sn, enrollId, name, rollId, backupnum);
+				}
 			} catch (Exception relayEx) {
 				logger.warn("Registration DB relay failed. sourceSn={} enrollId={} backupnum={}",
 						sn, enrollId, backupnum, relayEx);
 			}
-			conn.send("{\"ret\":\"senduser\",\"result\":true,\"cloudtime\":\"" + sdf.format(new Date()) + "\"}");
+			sendJsonIfConnected(conn,
+					"{\"ret\":\"senduser\",\"result\":true,\"cloudtime\":\"" + sdf.format(new Date()) + "\"}",
+					"senduser-success", sn);
 			deviceStatus.setWebSocket(conn);
 			deviceStatus.setStatus(1);
 			deviceStatus.setDeviceSn(sn);
@@ -1374,14 +1749,14 @@ public class WSServer extends WebSocketServer {
 //     	???????????????????????????????????????????????????????????????????????????????????????????????????????????
 	private void getUserInfo(JsonNode jsonNode, org.java_websocket.WebSocket conn) {
 		// TODO Auto-generated method stub
-		System.out.println(jsonNode);
+		System.out.println(toConsoleText(jsonNode));
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		// System.out.println("??????????????????????????????????????????????????????????????????????????????????"+jsonNode);
 		Boolean result = jsonNode.get("result").asBoolean();
 		String sn = jsonNode.get("sn").asText();
 		exportRawPayload(sn, "getuserinfo", jsonNode);
 		// System.out.println("sn???????????????????????????"+jsonNode);
-		System.out.println(jsonNode);
+		System.out.println(toConsoleText(jsonNode));
 		// DeviceStatus deviceStatus=new DeviceStatus();
 		if (result) {
 			int backupnum = jsonNode.get("backupnum").asInt();
@@ -1408,16 +1783,12 @@ public class WSServer extends WebSocketServer {
 				logger.info("Dynamic face local image write disabled for getuserinfo. sn={} enrollId={} backupnum={}",
 						sn, enrollId, backupnum);
 			}
-			if (enrollInfo == null) {
-				EnrollInfo insertEnrollInfo = new EnrollInfo();
-				insertEnrollInfo.setEnrollId(enrollId);
-				insertEnrollInfo.setBackupnum(backupnum);
-				insertEnrollInfo.setSignatures(signatures);
-				enrollInfoService.insertSelective(insertEnrollInfo);
-			} else {
-				enrollInfo.setSignatures(signatures);
-				enrollInfoService.updateByPrimaryKeyWithBLOBs(enrollInfo);
-			}
+			EnrollInfo incomingInfo = new EnrollInfo();
+			incomingInfo.setEnrollId(enrollId);
+			incomingInfo.setBackupnum(backupnum);
+			incomingInfo.setSignatures(signatures);
+			boolean persistedForRelay = upsertEnrollInfoWithStorageFallback("getuserinfo", sn, enrollInfo, incomingInfo);
+			logRegistrationSaved("getuserinfo", sn, enrollId, name, admin, backupnum, signatures, persistedForRelay);
 			exportUserInfoRecord(sn, enrollId, name, admin, backupnum, signatures, exportedImagePath, "getuserinfo");
 		}
 		// }
@@ -1434,6 +1805,152 @@ public class WSServer extends WebSocketServer {
 			return 0;
 		}
 		return Math.max(0, admin);
+	}
+
+	private void logRegistrationSaved(String source, String deviceSn, Long enrollId, String name, int admin, int backupnum,
+			String record, boolean persistedToDb) {
+		String message = "[REG-SAVE] source=" + safeConsoleValue(source)
+				+ ", device=" + safeConsoleValue(deviceSn)
+				+ ", enrollId=" + (enrollId == null ? "" : enrollId.longValue())
+				+ ", name=" + safeConsoleValue(name)
+				+ ", admin=" + admin
+				+ ", backupnum=" + backupnum
+				+ ", recordSize=" + summarizeRecordSize(record)
+				+ ", containsImage=" + (backupnum == 50)
+				+ ", persistedToDb=" + persistedToDb;
+		logger.info(message);
+	}
+
+	private void logRegistrationRelayTarget(String source, String sourceSn, String targetSn, Long enrollId, String name,
+			int backupnum, String record) {
+		String message = "[REG-RELAY] source=" + safeConsoleValue(source)
+				+ ", sourceDevice=" + safeConsoleValue(sourceSn)
+				+ ", targetDevice=" + safeConsoleValue(targetSn)
+				+ ", enrollId=" + (enrollId == null ? "" : enrollId.longValue())
+				+ ", name=" + safeConsoleValue(name)
+				+ ", backupnum=" + backupnum
+				+ ", recordSize=" + summarizeRecordSize(record)
+				+ ", containsImage=" + (backupnum == 50);
+		logger.info(message);
+	}
+
+	private void logRegistrationRelaySummary(String source, String sourceSn, Long enrollId, String name, int backupnum,
+			List<String> queuedTargets) {
+		String targetSummary = queuedTargets == null || queuedTargets.isEmpty() ? "" : String.join("|", queuedTargets);
+		String message = "[REG-RELAY-SUMMARY] source=" + safeConsoleValue(source)
+				+ ", sourceDevice=" + safeConsoleValue(sourceSn)
+				+ ", enrollId=" + (enrollId == null ? "" : enrollId.longValue())
+				+ ", name=" + safeConsoleValue(name)
+				+ ", backupnum=" + backupnum
+				+ ", queuedTargets=" + (queuedTargets == null ? 0 : queuedTargets.size())
+				+ ", targetList=" + targetSummary;
+		logger.info(message);
+	}
+
+	private String summarizeRecordSize(String record) {
+		return String.valueOf(record == null ? 0 : record.length());
+	}
+
+	private boolean isSameDbRegistrationSnapshot(Person existingPerson, EnrollInfo existingInfo, String incomingName,
+			int backupnum, String incomingRecord) {
+		if (existingInfo == null || existingInfo.getBackupnum() == null) {
+			return false;
+		}
+		if (existingInfo.getBackupnum().intValue() != backupnum) {
+			return false;
+		}
+		if (!normalizeRegistrationText(existingInfo.getSignatures()).equals(normalizeRegistrationText(incomingRecord))) {
+			return false;
+		}
+		if (existingPerson == null) {
+			return false;
+		}
+		return normalizeRegistrationText(existingPerson.getName()).equals(normalizeRegistrationText(incomingName));
+	}
+
+	private String normalizeRegistrationText(String value) {
+		return value == null ? "" : value.trim();
+	}
+
+	private String safeConsoleValue(String value) {
+		if (value == null) {
+			return "";
+		}
+		return value.replace("\r", " ").replace("\n", " ");
+	}
+
+	private boolean isPhotoDbWriteEnabled() {
+		String configured = System.getProperty(PHOTO_DB_WRITE_ENABLED_PROPERTY);
+		if (configured != null && "false".equalsIgnoreCase(configured.trim())) {
+			return false;
+		}
+		return !photoDbWriteDisabledByFilegroupFull;
+	}
+
+	private boolean upsertEnrollInfoWithStorageFallback(String source, String sn, EnrollInfo existingInfo,
+			EnrollInfo incomingInfo) {
+		if (incomingInfo == null || incomingInfo.getBackupnum() == null) {
+			return false;
+		}
+		int backupnum = incomingInfo.getBackupnum().intValue();
+		Long enrollId = incomingInfo.getEnrollId();
+		boolean isPhotoPayload = backupnum == 50;
+		if (isPhotoPayload && !isPhotoDbWriteEnabled()) {
+			logger.warn("Skip photo DB write. source={} sn={} enrollId={} backupnum={} reason=disabled",
+					source, sn, enrollId, backupnum);
+			return false;
+		}
+		try {
+			if (existingInfo == null) {
+				enrollInfoService.insertSelective(incomingInfo);
+			} else {
+				existingInfo.setSignatures(incomingInfo.getSignatures());
+				enrollInfoService.updateByPrimaryKeyWithBLOBs(existingInfo);
+			}
+			return true;
+		} catch (Exception ex) {
+			if (isPhotoPayload && isSqlServerFilegroupFull(ex)) {
+				disablePhotoDbWriteForRuntime(ex, source, sn, enrollId, backupnum);
+				return false;
+			}
+			if (ex instanceof RuntimeException) {
+				throw (RuntimeException) ex;
+			}
+			throw new RuntimeException(ex);
+		}
+	}
+
+	private void disablePhotoDbWriteForRuntime(Throwable error, String source, String sn, Long enrollId, int backupnum) {
+		if (!photoDbWriteDisabledByFilegroupFull) {
+			photoDbWriteDisabledByFilegroupFull = true;
+			logger.error(
+					"Detected SQL Server filegroup-full (error 1105). Photo DB writes are now disabled for this JVM. source={} sn={} enrollId={} backupnum={} overrideProperty={} setTo=false",
+					source, sn, enrollId, backupnum, PHOTO_DB_WRITE_ENABLED_PROPERTY, error);
+			return;
+		}
+		logger.warn("Skip photo DB write due to prior filegroup-full detection. source={} sn={} enrollId={} backupnum={}",
+				source, sn, enrollId, backupnum);
+	}
+
+	private boolean isSqlServerFilegroupFull(Throwable error) {
+		Throwable cursor = error;
+		while (cursor != null) {
+			if (cursor instanceof SQLException) {
+				SQLException sqlEx = (SQLException) cursor;
+				if (sqlEx.getErrorCode() == 1105) {
+					return true;
+				}
+			}
+			String message = cursor.getMessage();
+			if (message != null) {
+				String lower = message.toLowerCase();
+				if (lower.contains("filegroup is full") || lower.contains("could not allocate space for object")) {
+					return true;
+				}
+			}
+			cursor = cursor.getCause();
+		}
+		return false;
 	}
 
 	private void exportRawPayload(String sn, String source, JsonNode payload) {
@@ -1796,7 +2313,7 @@ public class WSServer extends WebSocketServer {
 
 		Boolean result = jsonNode.get("result").asBoolean();
 		List<Records> recordAll = new ArrayList<Records>();
-		// System.out.println("ÃƒÂ¨Ã‚Â®Ã‚Â°ÃƒÂ¥Ã‚Â½Ã¢â‚¬Â¢"+jsonNode);
+		// System.out.println("ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢"+jsonNode);
 			String sn = jsonNode.get("sn").asText();
 			ensureNetworkMapping(sn);
 			Integer gateInOutOverride = resolveGateInOutOverride(sn);
@@ -1823,7 +2340,7 @@ public class WSServer extends WebSocketServer {
 						temperature = type.get("temp").asDouble();
 						temperature = temperature / 100;
 						temperature = (double) Math.round(temperature * 10) / 10;
-						System.out.println("ÃƒÂ¦Ã‚Â¸Ã‚Â©ÃƒÂ¥Ã‚ÂºÃ‚Â¦ÃƒÂ¥Ã¢â€šÂ¬Ã‚Â¼" + temperature);
+						System.out.println("ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¼" + temperature);
 					}
 					Records record = new Records();
 					// record.setDeviceSerialNum(sn);
@@ -1853,12 +2370,12 @@ public class WSServer extends WebSocketServer {
 
 	}
 
-	// ÃƒÂ¨Ã…Â½Ã‚Â·ÃƒÂ¥Ã‚ÂÃ¢â‚¬â€œÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¨ÃƒÂ©Ã†â€™Ã‚Â¨ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Å“ÃƒÂ¥Ã‚ÂÃ‚Â¡ÃƒÂ¨Ã‚Â®Ã‚Â°ÃƒÂ¥Ã‚Â½Ã¢â‚¬Â¢
+	// ÃƒÆ’Ã‚Â¨Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â·ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â©Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢
 	private void getnewLog(JsonNode jsonNode, WebSocket conn) {
 
 		Boolean result = jsonNode.get("result").asBoolean();
 		List<Records> recordAll = new ArrayList<Records>();
-		System.out.println("ÃƒÂ¨Ã‚Â®Ã‚Â°ÃƒÂ¥Ã‚Â½Ã¢â‚¬Â¢" + jsonNode);
+		System.out.println("ÃƒÆ’Ã‚Â¨Ãƒâ€šÃ‚Â®Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢" + toConsoleText(jsonNode));
 		String sn = jsonNode.get("sn").asText();
 		ensureNetworkMapping(sn);
 		Integer gateInOutOverride = resolveGateInOutOverride(sn);
@@ -1885,7 +2402,7 @@ public class WSServer extends WebSocketServer {
 						temperature = type.get("temp").asDouble();
 						temperature = temperature / 100;
 						temperature = (double) Math.round(temperature * 10) / 10;
-						System.out.println("ÃƒÂ¦Ã‚Â¸Ã‚Â©ÃƒÂ¥Ã‚ÂºÃ‚Â¦ÃƒÂ¥Ã¢â€šÂ¬Ã‚Â¼" + temperature);
+						System.out.println("ÃƒÆ’Ã‚Â¦Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¥Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¼" + temperature);
 					}
 					Records record = new Records();
 					// record.setDeviceSerialNum(sn);
@@ -1951,6 +2468,103 @@ public class WSServer extends WebSocketServer {
 		}
 	}
 
+	private String toConsoleText(String payload) {
+		if (payload == null) {
+			return "null";
+		}
+		String normalized = payload.trim();
+		if (normalized.isEmpty()) {
+			return normalized;
+		}
+		if (normalized.startsWith("{") || normalized.startsWith("[")) {
+			try {
+				return toConsoleText(commandObjectMapper.readTree(normalized));
+			} catch (Exception ex) {
+				return abbreviateConsoleText(normalized);
+			}
+		}
+		return abbreviateConsoleText(normalized);
+	}
+
+	private String toConsoleText(JsonNode node) {
+		if (node == null) {
+			return "null";
+		}
+		try {
+			return sanitizeConsoleJson(node.deepCopy()).toString();
+		} catch (Exception ex) {
+			return abbreviateConsoleText(node.toString());
+		}
+	}
+
+	private JsonNode sanitizeConsoleJson(JsonNode node) {
+		if (node == null) {
+			return null;
+		}
+		if (node.isObject()) {
+			ObjectNode objectNode = (ObjectNode) node;
+			Iterator<Map.Entry<String, JsonNode>> fields = objectNode.fields();
+			while (fields.hasNext()) {
+				Map.Entry<String, JsonNode> entry = fields.next();
+				String fieldName = entry.getKey();
+				JsonNode fieldValue = entry.getValue();
+				if (shouldSuppressConsoleField(fieldName, fieldValue)) {
+					objectNode.put(fieldName, summarizeSuppressedConsoleField(fieldName, fieldValue));
+				} else {
+					sanitizeConsoleJson(fieldValue);
+				}
+			}
+			return objectNode;
+		}
+		if (node.isArray()) {
+			ArrayNode arrayNode = (ArrayNode) node;
+			for (int i = 0; i < arrayNode.size(); i++) {
+				sanitizeConsoleJson(arrayNode.get(i));
+			}
+		}
+		return node;
+	}
+
+	private boolean shouldSuppressConsoleField(String fieldName, JsonNode fieldValue) {
+		if (fieldName == null || fieldValue == null || fieldValue.isNull() || !fieldValue.isTextual()) {
+			return false;
+		}
+		String lower = fieldName.toLowerCase(Locale.ROOT);
+		if ("record".equals(lower) || "image".equals(lower) || "face_base64".equals(lower)
+				|| "photo".equals(lower) || "picture".equals(lower)) {
+			return fieldValue.asText().length() > 64;
+		}
+		return looksLikeLargeBase64(fieldValue.asText());
+	}
+
+	private String summarizeSuppressedConsoleField(String fieldName, JsonNode fieldValue) {
+		String text = fieldValue == null || fieldValue.isNull() ? "" : fieldValue.asText("");
+		return "[omitted " + fieldName + " len=" + text.length() + "]";
+	}
+
+	private boolean looksLikeLargeBase64(String value) {
+		if (value == null) {
+			return false;
+		}
+		String normalized = value.trim();
+		if (normalized.length() < 256) {
+			return false;
+		}
+		return normalized.matches("^[A-Za-z0-9+/=\\r\\n]+$");
+	}
+
+	private String abbreviateConsoleText(String value) {
+		if (value == null) {
+			return "null";
+		}
+		String normalized = value.replace("\r", "\\r").replace("\n", "\\n");
+		int maxLen = 400;
+		if (normalized.length() <= maxLen) {
+			return normalized;
+		}
+		return normalized.substring(0, maxLen) + "...[truncated len=" + normalized.length() + "]";
+	}
+
 	private Integer toInOutByGate(String gate) {
 		if (gate == null) {
 			return null;
@@ -1969,6 +2583,7 @@ public class WSServer extends WebSocketServer {
 		return null;
 	}
 }
+
 
 
 

@@ -97,6 +97,7 @@ public class EnrollInfoServiceImpl implements EnrollInfoService{
 			UserInfo userInfo = new UserInfo();
 			userInfo.setAdmin(person.getRollId() == null ? 0 : person.getRollId());
 			userInfo.setBackupnum(enrollInfo.getBackupnum());
+			userInfo.setSourceId(enrollInfo.getId() == null ? null : Long.valueOf(enrollInfo.getId().longValue()));
 			userInfo.setEnrollId(person.getId());
 			userInfo.setName(person.getName() == null ? "" : person.getName());
 			userInfo.setRecord(enrollInfo.getSignatures() == null ? "" : enrollInfo.getSignatures());
@@ -126,7 +127,18 @@ public class EnrollInfoServiceImpl implements EnrollInfoService{
 	@Override
 	public int updateByEnrollIdAndBackupNum(String signatures, Long enrollId,
 			int backupnum) {
-		// TODO Auto-generated method stub
+		if (enrollId == null) {
+			return 0;
+		}
+		if (backupnum == 50) {
+			EnrollInfo existing = enrollInfoMapper.selectByBackupnum(enrollId, backupnum);
+			String incoming = signatures == null ? "" : signatures;
+			String current = existing == null || existing.getSignatures() == null ? "" : existing.getSignatures();
+			if (existing != null && current.equals(incoming)) {
+				// Same base64 already stored for this user photo; skip unnecessary LOB rewrite.
+				return 0;
+			}
+		}
 		return enrollInfoMapper.updateByEnrollIdAndBackupNum(signatures, enrollId, backupnum);
 	}
 

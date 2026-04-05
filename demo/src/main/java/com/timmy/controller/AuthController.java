@@ -22,7 +22,13 @@ public class AuthController {
 
 	@RequestMapping(value = "/login", method = RequestMethod.GET)
 	public String loginPage(HttpSession session) {
-		if (session != null && session.getAttribute(SimpleAuthConfig.SESSION_USER_KEY) != null) {
+		Object contextBootToken = (session == null || session.getServletContext() == null) ? null
+				: session.getServletContext().getAttribute(SimpleAuthConfig.CONTEXT_BOOT_TOKEN_KEY);
+		Object sessionBootToken = session == null ? null
+				: session.getAttribute(SimpleAuthConfig.SESSION_BOOT_TOKEN_KEY);
+		if (session != null && session.getAttribute(SimpleAuthConfig.SESSION_USER_KEY) != null
+				&& contextBootToken != null && sessionBootToken != null
+				&& contextBootToken.toString().equals(sessionBootToken.toString())) {
 			return "redirect:/index.jsp";
 		}
 		return "login";
@@ -34,6 +40,10 @@ public class AuthController {
 		boolean validByDb = isValidCredentialFromDb(username, password);
 		if (validByDb) {
 			session.setAttribute(SimpleAuthConfig.SESSION_USER_KEY, username.trim());
+			Object contextBootToken = session.getServletContext().getAttribute(SimpleAuthConfig.CONTEXT_BOOT_TOKEN_KEY);
+			if (contextBootToken != null) {
+				session.setAttribute(SimpleAuthConfig.SESSION_BOOT_TOKEN_KEY, contextBootToken.toString());
+			}
 			return "redirect:/index.jsp";
 		}
 		return "redirect:/login?error=1";

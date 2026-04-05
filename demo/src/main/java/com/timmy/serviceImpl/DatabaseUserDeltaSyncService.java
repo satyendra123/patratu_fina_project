@@ -42,6 +42,8 @@ public class DatabaseUserDeltaSyncService {
 	private static final Logger log = LoggerFactory.getLogger(DatabaseUserDeltaSyncService.class);
 	private static final int BATCH_SIZE = 500;
 	private static final int ESTIMATED_COMMANDS_PER_SECOND_PER_DEVICE = 10;
+	private static final int DIRECT_SEND_USER_BATCH_SIZE = 50;
+	private static final long DIRECT_SEND_BATCH_PAUSE_MS = 20L;
 	private static final int COMMAND_DEDUPE_USER_CHUNK = 200;
 	private static final String SNAPSHOT_FILE_NAME = "idsl-user-status-sync-cache.properties";
 	private static final String ACTIVE_PREFIX = "U.";
@@ -193,13 +195,474 @@ public class DatabaseUserDeltaSyncService {
 		}
 	}
 
+	public SyncResult syncTodayUpdatedUsersByUpdDate(String trigger) {
+		synchronized (syncLock) {
+			long startedMs = System.currentTimeMillis();
+			SyncResult result = new SyncResult();
+			result.setTrigger(trigger);
+			result.setStartedAt(new Date(startedMs));
+			result.setSnapshotFile("");
+			Long auditId = createTransitionSyncAuditStart(result.getStartedAt());
+			log.info("[DB-UPD-DATE-DIRECT-SYNC] start trigger={}, mode=today+yesterday-upd-date-direct-online",
+					trigger);
+			try {
+				List<String> serials = getAllKnownDeviceSerials();
+				List<String> onlineSerials = getOnlineDeviceSerials(serials);
+				result.setDevices(serials.size());
+				result.setOnlineDevices(onlineSerials.size());
+				if (serials.isEmpty()) {
+					result.setSuccess(false);
+					result.setError("No devices found in database.");
+					result.setReason("No devices configured in database.");
+					long finishedNoDeviceMs = System.currentTimeMillis();
+					result.setFinishedAt(new Date(finishedNoDeviceMs));
+					result.setDurationMs(finishedNoDeviceMs - startedMs);
+				} else {
+					Map<Long, Integer> recentUpdatedStatuses = loadTodayUpdatedStatusesByUpdDate();
+					result.setActiveUsers(recentUpdatedStatuses.size());
+					result.setDeletedUsers(0);
+					result.setSnapshotLoaded(false);
+
+					List<Long> enabledUserIds = new ArrayList<Long>();
+					List<Long> disabledUserIds = new ArrayList<Long>();
+					for (Map.Entry<Long, Integer> entry : recentUpdatedStatuses.entrySet()) {
+						Long userId = entry.getKey();
+						if (userId == null) {
+							continue;
+						}
+						int normalizedStatus = normalizeEnableStatus(entry.getValue());
+						if (normalizedStatus == 0) {
+							disabledUserIds.add(userId);
+						} else {
+							enabledUserIds.add(userId);
+						}
+					}
+					Collections.sort(enabledUserIds);
+					Collections.sort(disabledUserIds);
+
+					Set<Long> todayDeletedUserIds = loadTodayDeletedUserIdsByDelDate();
+					int updatedUsersToday = enabledUserIds.size() + disabledUserIds.size();
+					int changedUsersToday = updatedUsersToday + todayDeletedUserIds.size();
+
+					result.setEnabledUsers(enabledUserIds.size());
+					result.setDisabledUsers(disabledUserIds.size());
+					result.setChangedStatusUsers(updatedUsersToday);
+					result.setChangedDeletedUsers(todayDeletedUserIds.size());
+					result.setEstimatedDeviceDispatchSeconds(estimateDirectDispatchSeconds(changedUsersToday));
+
+					if (changedUsersToday <= 0) {
+						result.setEnableCommandsQueued(0);
+						result.setDisableCommandsQueued(0);
+						result.setStatusCommandsQueued(0);
+						result.setDeleteCommandsQueued(0);
+						result.setTotalCommandsQueued(0);
+						result.setEstimatedDeviceDispatchSeconds(0L);
+						result.setReason("No users found with today's/yesterday's UPD_DATE or DEL_DATE for direct send.");
+						result.setSuccess(true);
+					} else if (onlineSerials.isEmpty()) {
+						result.setEnableCommandsQueued(0);
+						result.setDisableCommandsQueued(0);
+						result.setStatusCommandsQueued(0);
+						result.setDeleteCommandsQueued(0);
+						result.setTotalCommandsQueued(0);
+						result.setEstimatedDeviceDispatchSeconds(0L);
+						result.setSuccess(false);
+						result.setError("No online websocket devices available for scheduler direct send.");
+						result.setReason("Users found for today+yesterday, but no device is online for direct send.");
+					} else {
+						int enableCommandsSent = directSendEnableDisablePhaseCommands(enabledUserIds, 1, onlineSerials,
+								trigger + "-enable");
+						int disableCommandsSent = directSendEnableDisablePhaseCommands(disabledUserIds, 0, onlineSerials,
+								trigger + "-disable");
+						int deleteCommandsSent = directSendDeleteCommands(todayDeletedUserIds, onlineSerials,
+								trigger + "-delete");
+						long expectedTotal = ((long) changedUsersToday) * ((long) onlineSerials.size());
+
+						result.setEnableCommandsQueued(enableCommandsSent);
+						result.setDisableCommandsQueued(disableCommandsSent);
+						result.setStatusCommandsQueued(enableCommandsSent + disableCommandsSent);
+						result.setDeleteCommandsQueued(deleteCommandsSent);
+						result.setTotalCommandsQueued(enableCommandsSent + disableCommandsSent + deleteCommandsSent);
+						result.setSuccess(true);
+
+						if (((long) result.getTotalCommandsQueued()) < expectedTotal) {
+							result.setReason(
+									"Scheduler direct send partially completed; one or more devices disconnected while sending.");
+						} else {
+							result.setReason("Scheduler direct send completed for all currently online devices.");
+						}
+					}
+
+					log.info(
+							"[DB-UPD-DATE-DIRECT-SYNC] sent trigger={}, updatedUsersTodayAndYesterday={}, deletedTodayAndYesterday={}, enabledTodayAndYesterday={}, disabledTodayAndYesterday={}, sent(total={}, enable={}, disable={}, delete={}), devices={}, onlineDevices={}",
+							trigger, updatedUsersToday, result.getChangedDeletedUsers(), result.getEnabledUsers(),
+							result.getDisabledUsers(), result.getTotalCommandsQueued(),
+							result.getEnableCommandsQueued(), result.getDisableCommandsQueued(),
+							result.getDeleteCommandsQueued(), result.getDevices(), result.getOnlineDevices());
+					if (hasText(result.getReason())) {
+						log.warn("[DB-UPD-DATE-DIRECT-SYNC] reason trigger={}, message={}", trigger, result.getReason());
+					}
+				}
+			} catch (Exception ex) {
+				result.setSuccess(false);
+				result.setError(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+				log.error("[DB-UPD-DATE-DIRECT-SYNC] failed trigger={}, error={}", trigger, result.getError(), ex);
+			}
+			long finishedMs = System.currentTimeMillis();
+			result.setFinishedAt(new Date(finishedMs));
+			result.setDurationMs(finishedMs - startedMs);
+			log.info(
+					"[DB-UPD-DATE-DIRECT-SYNC] finish trigger={}, success={}, durationMs={}, devices={}, onlineDevices={}, sentTotal={}, reason={}, error={}",
+					trigger, result.isSuccess(), result.getDurationMs(), result.getDevices(), result.getOnlineDevices(),
+					result.getTotalCommandsQueued(), result.getReason(), result.getError());
+			updateTransitionSyncAuditFinish(auditId, result);
+			return result;
+		}
+	}
+
+	public SyncResult syncUsersUpdatedByUpdDate(String trigger, String syncDateText) {
+		synchronized (syncLock) {
+			long startedMs = System.currentTimeMillis();
+			SyncResult result = new SyncResult();
+			result.setTrigger(trigger);
+			result.setStartedAt(new Date(startedMs));
+			result.setSnapshotFile("");
+			java.sql.Date syncDate = parseSqlDate(syncDateText);
+			if (syncDate == null) {
+				result.setSuccess(false);
+				result.setError("syncDate must be in yyyy-MM-dd format.");
+				long finishedInvalidDateMs = System.currentTimeMillis();
+				result.setFinishedAt(new Date(finishedInvalidDateMs));
+				result.setDurationMs(finishedInvalidDateMs - startedMs);
+				return result;
+			}
+			log.info("[DB-UPD-DATE-MANUAL-SYNC] start trigger={}, syncDate={}", trigger, syncDateText);
+			try {
+				List<String> serials = getAllKnownDeviceSerials();
+				result.setDevices(serials.size());
+				result.setOnlineDevices(countOnlineDevices(serials));
+				if (serials.isEmpty()) {
+					result.setSuccess(false);
+					result.setError("No devices found in database.");
+					result.setReason("No devices configured in database.");
+				} else {
+					Map<Long, Integer> updatedStatuses = loadUpdatedStatusesByUpdDate(syncDate);
+					List<Long> enabledUserIds = new ArrayList<Long>();
+					List<Long> disabledUserIds = new ArrayList<Long>();
+					for (Map.Entry<Long, Integer> entry : updatedStatuses.entrySet()) {
+						Long userId = entry.getKey();
+						if (userId == null) {
+							continue;
+						}
+						if (normalizeEnableStatus(entry.getValue()) == 0) {
+							disabledUserIds.add(userId);
+						} else {
+							enabledUserIds.add(userId);
+						}
+					}
+					Collections.sort(enabledUserIds);
+					Collections.sort(disabledUserIds);
+
+					int enableCommandsQueued = queueEnableDisablePhaseCommands(enabledUserIds, 1, serials);
+					int disableCommandsQueued = queueEnableDisablePhaseCommands(disabledUserIds, 0, serials);
+
+					result.setActiveUsers(updatedStatuses.size());
+					result.setDeletedUsers(0);
+					result.setEnabledUsers(enabledUserIds.size());
+					result.setDisabledUsers(disabledUserIds.size());
+					result.setChangedStatusUsers(updatedStatuses.size());
+					result.setChangedDeletedUsers(0);
+					result.setEnableCommandsQueued(enableCommandsQueued);
+					result.setDisableCommandsQueued(disableCommandsQueued);
+					result.setStatusCommandsQueued(enableCommandsQueued + disableCommandsQueued);
+					result.setDeleteCommandsQueued(0);
+					result.setTotalCommandsQueued(enableCommandsQueued + disableCommandsQueued);
+					result.setEstimatedDeviceDispatchSeconds(estimateDeviceDispatchSeconds(updatedStatuses.size()));
+
+					if (result.getTotalCommandsQueued() == 0) {
+						result.setEstimatedDeviceDispatchSeconds(0L);
+						result.setReason("No users found with UPD_DATE = " + syncDateText + ".");
+					} else if (result.getOnlineDevices() <= 0) {
+						result.setReason("Commands queued in DEVICECMD, but no websocket device is online right now.");
+					}
+					result.setSuccess(true);
+					log.info(
+							"[DB-UPD-DATE-MANUAL-SYNC] queued trigger={}, syncDate={}, users={}, enabled={}, disabled={}, queued(total={}, enable={}, disable={}), devices={}, onlineDevices={}",
+							trigger, syncDateText, result.getChangedStatusUsers(), result.getEnabledUsers(),
+							result.getDisabledUsers(), result.getTotalCommandsQueued(),
+							result.getEnableCommandsQueued(), result.getDisableCommandsQueued(), result.getDevices(),
+							result.getOnlineDevices());
+				}
+			} catch (Exception ex) {
+				result.setSuccess(false);
+				result.setError(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+				log.error("[DB-UPD-DATE-MANUAL-SYNC] failed trigger={}, syncDate={}, error={}", trigger, syncDateText,
+						result.getError(), ex);
+			}
+			long finishedMs = System.currentTimeMillis();
+			result.setFinishedAt(new Date(finishedMs));
+			result.setDurationMs(finishedMs - startedMs);
+			return result;
+		}
+	}
+
+	public SyncResult syncUsersDeletedByDelDate(String trigger, String syncDateText) {
+		synchronized (syncLock) {
+			long startedMs = System.currentTimeMillis();
+			SyncResult result = new SyncResult();
+			result.setTrigger(trigger);
+			result.setStartedAt(new Date(startedMs));
+			result.setSnapshotFile("");
+			java.sql.Date syncDate = parseSqlDate(syncDateText);
+			if (syncDate == null) {
+				result.setSuccess(false);
+				result.setError("syncDate must be in yyyy-MM-dd format.");
+				long finishedInvalidDateMs = System.currentTimeMillis();
+				result.setFinishedAt(new Date(finishedInvalidDateMs));
+				result.setDurationMs(finishedInvalidDateMs - startedMs);
+				return result;
+			}
+			log.info("[DB-DEL-DATE-MANUAL-SYNC] start trigger={}, syncDate={}", trigger, syncDateText);
+			try {
+				List<String> serials = getAllKnownDeviceSerials();
+				result.setDevices(serials.size());
+				result.setOnlineDevices(countOnlineDevices(serials));
+				if (serials.isEmpty()) {
+					result.setSuccess(false);
+					result.setError("No devices found in database.");
+					result.setReason("No devices configured in database.");
+				} else {
+					Set<Long> deletedUserIds = loadDeletedUserIdsByDelDate(syncDate);
+					int deleteCommandsQueued = queueDeleteCommands(deletedUserIds, serials);
+
+					result.setActiveUsers(0);
+					result.setDeletedUsers(deletedUserIds.size());
+					result.setEnabledUsers(0);
+					result.setDisabledUsers(0);
+					result.setChangedStatusUsers(0);
+					result.setChangedDeletedUsers(deletedUserIds.size());
+					result.setEnableCommandsQueued(0);
+					result.setDisableCommandsQueued(0);
+					result.setStatusCommandsQueued(0);
+					result.setDeleteCommandsQueued(deleteCommandsQueued);
+					result.setTotalCommandsQueued(deleteCommandsQueued);
+					result.setEstimatedDeviceDispatchSeconds(estimateDeviceDispatchSeconds(deletedUserIds.size()));
+
+					if (result.getTotalCommandsQueued() == 0) {
+						result.setEstimatedDeviceDispatchSeconds(0L);
+						result.setReason("No users found with DEL_DATE = " + syncDateText + ".");
+					} else if (result.getOnlineDevices() <= 0) {
+						result.setReason("Commands queued in DEVICECMD, but no websocket device is online right now.");
+					}
+					result.setSuccess(true);
+					log.info(
+							"[DB-DEL-DATE-MANUAL-SYNC] queued trigger={}, syncDate={}, deletedUsers={}, queuedDelete={}, devices={}, onlineDevices={}",
+							trigger, syncDateText, result.getChangedDeletedUsers(), result.getDeleteCommandsQueued(),
+							result.getDevices(), result.getOnlineDevices());
+				}
+			} catch (Exception ex) {
+				result.setSuccess(false);
+				result.setError(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+				log.error("[DB-DEL-DATE-MANUAL-SYNC] failed trigger={}, syncDate={}, error={}", trigger, syncDateText,
+						result.getError(), ex);
+			}
+			long finishedMs = System.currentTimeMillis();
+			result.setFinishedAt(new Date(finishedMs));
+			result.setDurationMs(finishedMs - startedMs);
+			return result;
+		}
+	}
+
+	public SyncResult directSendUsersUpdatedByUpdDate(String trigger, String syncDateText) {
+		synchronized (syncLock) {
+			long startedMs = System.currentTimeMillis();
+			SyncResult result = new SyncResult();
+			result.setTrigger(trigger);
+			result.setStartedAt(new Date(startedMs));
+			result.setSnapshotFile("");
+			java.sql.Date syncDate = parseSqlDate(syncDateText);
+			if (syncDate == null) {
+				result.setSuccess(false);
+				result.setError("syncDate must be in yyyy-MM-dd format.");
+				long finishedInvalidDateMs = System.currentTimeMillis();
+				result.setFinishedAt(new Date(finishedInvalidDateMs));
+				result.setDurationMs(finishedInvalidDateMs - startedMs);
+				return result;
+			}
+			log.info("[DB-UPD-DATE-DIRECT-SYNC] start trigger={}, syncDate={}", trigger, syncDateText);
+			try {
+				List<String> serials = getAllKnownDeviceSerials();
+				List<String> onlineSerials = getOnlineDeviceSerials(serials);
+				result.setDevices(serials.size());
+				result.setOnlineDevices(onlineSerials.size());
+				if (serials.isEmpty()) {
+					result.setSuccess(false);
+					result.setError("No devices found in database.");
+					result.setReason("No devices configured in database.");
+				} else {
+					Map<Long, Integer> updatedStatuses = loadUpdatedStatusesByUpdDate(syncDate);
+					List<Long> enabledUserIds = new ArrayList<Long>();
+					List<Long> disabledUserIds = new ArrayList<Long>();
+					for (Map.Entry<Long, Integer> entry : updatedStatuses.entrySet()) {
+						Long userId = entry.getKey();
+						if (userId == null) {
+							continue;
+						}
+						if (normalizeEnableStatus(entry.getValue()) == 0) {
+							disabledUserIds.add(userId);
+						} else {
+							enabledUserIds.add(userId);
+						}
+					}
+					Collections.sort(enabledUserIds);
+					Collections.sort(disabledUserIds);
+
+					result.setActiveUsers(updatedStatuses.size());
+					result.setDeletedUsers(0);
+					result.setEnabledUsers(enabledUserIds.size());
+					result.setDisabledUsers(disabledUserIds.size());
+					result.setChangedStatusUsers(updatedStatuses.size());
+					result.setChangedDeletedUsers(0);
+
+					if (updatedStatuses.isEmpty()) {
+						result.setSuccess(true);
+						result.setEstimatedDeviceDispatchSeconds(0L);
+						result.setReason("No users found with UPD_DATE = " + syncDateText + ".");
+					} else if (onlineSerials.isEmpty()) {
+						result.setSuccess(false);
+						result.setError("No online websocket devices available for direct send.");
+						result.setEstimatedDeviceDispatchSeconds(0L);
+						result.setReason("Selected date has users, but no device is online for direct send.");
+					} else {
+						int enableCommandsSent = directSendEnableDisablePhaseCommands(enabledUserIds, 1, onlineSerials,
+								trigger + "-upd-enable");
+						int disableCommandsSent = directSendEnableDisablePhaseCommands(disabledUserIds, 0, onlineSerials,
+								trigger + "-upd-disable");
+						long expectedTotal = ((long) updatedStatuses.size()) * ((long) onlineSerials.size());
+
+						result.setEnableCommandsQueued(enableCommandsSent);
+						result.setDisableCommandsQueued(disableCommandsSent);
+						result.setStatusCommandsQueued(enableCommandsSent + disableCommandsSent);
+						result.setDeleteCommandsQueued(0);
+						result.setTotalCommandsQueued(enableCommandsSent + disableCommandsSent);
+						result.setEstimatedDeviceDispatchSeconds(estimateDirectDispatchSeconds(updatedStatuses.size()));
+						result.setSuccess(true);
+						if (((long) result.getTotalCommandsQueued()) < expectedTotal) {
+							result.setReason(
+									"Direct send partially completed; one or more devices disconnected while sending.");
+						} else {
+							result.setReason("Direct send completed for all currently online devices.");
+						}
+						log.info(
+								"[DB-UPD-DATE-DIRECT-SYNC] sent trigger={}, syncDate={}, users={}, enabled={}, disabled={}, sent(total={}, enable={}, disable={}), devices={}, onlineDevices={}, expectedTotal={}",
+								trigger, syncDateText, result.getChangedStatusUsers(), result.getEnabledUsers(),
+								result.getDisabledUsers(), result.getTotalCommandsQueued(),
+								result.getEnableCommandsQueued(), result.getDisableCommandsQueued(), result.getDevices(),
+								result.getOnlineDevices(), Long.valueOf(expectedTotal));
+					}
+				}
+			} catch (Exception ex) {
+				result.setSuccess(false);
+				result.setError(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+				log.error("[DB-UPD-DATE-DIRECT-SYNC] failed trigger={}, syncDate={}, error={}", trigger, syncDateText,
+						result.getError(), ex);
+			}
+			long finishedMs = System.currentTimeMillis();
+			result.setFinishedAt(new Date(finishedMs));
+			result.setDurationMs(finishedMs - startedMs);
+			return result;
+		}
+	}
+
+	public SyncResult directSendUsersDeletedByDelDate(String trigger, String syncDateText) {
+		synchronized (syncLock) {
+			long startedMs = System.currentTimeMillis();
+			SyncResult result = new SyncResult();
+			result.setTrigger(trigger);
+			result.setStartedAt(new Date(startedMs));
+			result.setSnapshotFile("");
+			java.sql.Date syncDate = parseSqlDate(syncDateText);
+			if (syncDate == null) {
+				result.setSuccess(false);
+				result.setError("syncDate must be in yyyy-MM-dd format.");
+				long finishedInvalidDateMs = System.currentTimeMillis();
+				result.setFinishedAt(new Date(finishedInvalidDateMs));
+				result.setDurationMs(finishedInvalidDateMs - startedMs);
+				return result;
+			}
+			log.info("[DB-DEL-DATE-DIRECT-SYNC] start trigger={}, syncDate={}", trigger, syncDateText);
+			try {
+				List<String> serials = getAllKnownDeviceSerials();
+				List<String> onlineSerials = getOnlineDeviceSerials(serials);
+				result.setDevices(serials.size());
+				result.setOnlineDevices(onlineSerials.size());
+				if (serials.isEmpty()) {
+					result.setSuccess(false);
+					result.setError("No devices found in database.");
+					result.setReason("No devices configured in database.");
+				} else {
+					Set<Long> deletedUserIds = loadDeletedUserIdsByDelDate(syncDate);
+					result.setActiveUsers(0);
+					result.setDeletedUsers(deletedUserIds.size());
+					result.setEnabledUsers(0);
+					result.setDisabledUsers(0);
+					result.setChangedStatusUsers(0);
+					result.setChangedDeletedUsers(deletedUserIds.size());
+
+					if (deletedUserIds.isEmpty()) {
+						result.setSuccess(true);
+						result.setEstimatedDeviceDispatchSeconds(0L);
+						result.setReason("No users found with DEL_DATE = " + syncDateText + ".");
+					} else if (onlineSerials.isEmpty()) {
+						result.setSuccess(false);
+						result.setError("No online websocket devices available for direct send.");
+						result.setEstimatedDeviceDispatchSeconds(0L);
+						result.setReason("Selected date has deleted users, but no device is online for direct send.");
+					} else {
+						int deleteCommandsSent = directSendDeleteCommands(deletedUserIds, onlineSerials,
+								trigger + "-del-delete");
+						long expectedTotal = ((long) deletedUserIds.size()) * ((long) onlineSerials.size());
+
+						result.setEnableCommandsQueued(0);
+						result.setDisableCommandsQueued(0);
+						result.setStatusCommandsQueued(0);
+						result.setDeleteCommandsQueued(deleteCommandsSent);
+						result.setTotalCommandsQueued(deleteCommandsSent);
+						result.setEstimatedDeviceDispatchSeconds(estimateDirectDispatchSeconds(deletedUserIds.size()));
+						result.setSuccess(true);
+						if (((long) result.getDeleteCommandsQueued()) < expectedTotal) {
+							result.setReason(
+									"Direct delete partially completed; one or more devices disconnected while sending.");
+						} else {
+							result.setReason("Direct delete completed for all currently online devices.");
+						}
+						log.info(
+								"[DB-DEL-DATE-DIRECT-SYNC] sent trigger={}, syncDate={}, deletedUsers={}, sentDelete={}, devices={}, onlineDevices={}, expectedTotal={}",
+								trigger, syncDateText, result.getChangedDeletedUsers(), result.getDeleteCommandsQueued(),
+								result.getDevices(), result.getOnlineDevices(), Long.valueOf(expectedTotal));
+					}
+				}
+			} catch (Exception ex) {
+				result.setSuccess(false);
+				result.setError(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+				log.error("[DB-DEL-DATE-DIRECT-SYNC] failed trigger={}, syncDate={}, error={}", trigger, syncDateText,
+						result.getError(), ex);
+			}
+			long finishedMs = System.currentTimeMillis();
+			result.setFinishedAt(new Date(finishedMs));
+			result.setDurationMs(finishedMs - startedMs);
+			return result;
+		}
+	}
+
 	private Long createTransitionSyncAuditStart(Date startedAt) {
 		try {
 			JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 			ensureTransitionAuditTable(jdbcTemplate);
-			String sql = "insert into " + TRANSITION_AUDIT_TABLE + " (ACTIVE_USER, DISABLE_USER, STATUS, STARTED_AT, FINISHED_AT) "
-					+ "output INSERTED.ID values (?, ?, ?, ?, ?)";
-			return jdbcTemplate.queryForObject(sql, Long.class, 0, 0, "RUNNING", toTimestamp(startedAt), null);
+			String sql = "insert into " + TRANSITION_AUDIT_TABLE
+					+ " (ACTIVE_USER, DISABLE_USER, DELETED_USER, STATUS, STARTED_AT, FINISHED_AT) "
+					+ "output INSERTED.ID values (?, ?, ?, ?, ?, ?)";
+			return jdbcTemplate.queryForObject(sql, Long.class, 0, 0, 0, "RUNNING", toTimestamp(startedAt), null);
 		} catch (Exception ex) {
 			log.warn("[DB-VERIFY-TRANSITION-SYNC] failed to create start audit row. error={}", ex.getMessage());
 			return null;
@@ -214,10 +677,11 @@ public class DatabaseUserDeltaSyncService {
 			JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 			ensureTransitionAuditTable(jdbcTemplate);
 			String sql = "update " + TRANSITION_AUDIT_TABLE
-					+ " set ACTIVE_USER = ?, DISABLE_USER = ?, STATUS = ?, FINISHED_AT = ? where ID = ?";
+					+ " set ACTIVE_USER = ?, DISABLE_USER = ?, DELETED_USER = ?, STATUS = ?, FINISHED_AT = ? where ID = ?";
 			jdbcTemplate.update(sql,
 					result.getEnabledUsers(),
 					result.getDisabledUsers(),
+					result.getChangedDeletedUsers(),
 					result.isSuccess() ? "SUCCESS" : "FAILED",
 					toTimestamp(result.getFinishedAt()),
 					auditId);
@@ -237,10 +701,16 @@ public class DatabaseUserDeltaSyncService {
 				+ "ID BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY, "
 				+ "ACTIVE_USER INT NOT NULL DEFAULT 0, "
 				+ "DISABLE_USER INT NOT NULL DEFAULT 0, "
+				+ "DELETED_USER INT NOT NULL DEFAULT 0, "
 				+ "STATUS VARCHAR(20) NOT NULL, "
 				+ "STARTED_AT DATETIME2(0) NOT NULL, "
 				+ "FINISHED_AT DATETIME2(0) NULL "
 				+ "); "
+				+ "END; "
+				+ "IF COL_LENGTH('dbo." + TRANSITION_AUDIT_TABLE + "', 'DELETED_USER') IS NULL "
+				+ "BEGIN "
+				+ "ALTER TABLE dbo." + TRANSITION_AUDIT_TABLE + " ADD DELETED_USER INT NOT NULL CONSTRAINT DF_"
+				+ TRANSITION_AUDIT_TABLE + "_DELETED_USER DEFAULT 0 WITH VALUES; "
 				+ "END; "
 				+ "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_" + TRANSITION_AUDIT_TABLE
 				+ "_STARTED_AT' AND object_id = OBJECT_ID('dbo." + TRANSITION_AUDIT_TABLE + "')) "
@@ -464,6 +934,151 @@ public class DatabaseUserDeltaSyncService {
 		return result;
 	}
 
+	private Map<Long, Integer> loadTodayUpdatedStatusesByUpdDate() {
+		java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+		java.sql.Date yesterday = new java.sql.Date(today.getTime() - (24L * 60L * 60L * 1000L));
+		Map<Long, Integer> result = new LinkedHashMap<Long, Integer>();
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		String sql = "SELECT USER_ID, STATUS "
+				+ "FROM ( "
+				+ "  SELECT "
+				+ "    CASE WHEN ISNUMERIC(ID) = 1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS USER_ID, "
+				+ "    CASE WHEN ISNUMERIC(Verify) = 1 AND CONVERT(INT, Verify) IN (0,1) THEN CONVERT(INT, Verify) ELSE 1 END AS STATUS, "
+				+ "    ROW_NUMBER() OVER ( "
+				+ "      PARTITION BY ID "
+				+ "      ORDER BY CASE WHEN UPD_DATE IS NULL THEN 1 ELSE 0 END, UPD_DATE DESC, BU_ID DESC "
+				+ "    ) AS RN "
+				+ "  FROM BIO_USERMAST "
+				+ "  WHERE ISNULL(ISDELETED, 0) = 0 "
+				+ "    AND ISNUMERIC(ID) = 1 "
+				+ "    AND CAST(UPD_DATE AS DATE) >= ? "
+				+ "    AND CAST(UPD_DATE AS DATE) <= ? "
+				+ ") U "
+				+ "WHERE RN = 1 "
+				+ "ORDER BY STATUS DESC, USER_ID ASC";
+		List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, yesterday, today);
+		for (Map<String, Object> row : rows) {
+			Long userId = parseLong(toText(row.get("USER_ID")));
+			if (userId == null) {
+				continue;
+			}
+			int status = normalizeEnableStatus(Integer.valueOf(toInt(row.get("STATUS"), 1)));
+			result.put(userId, Integer.valueOf(status));
+		}
+		return result;
+	}
+
+	private Map<Long, Integer> loadUpdatedStatusesByUpdDate(java.sql.Date syncDate) {
+		Map<Long, Integer> result = new LinkedHashMap<Long, Integer>();
+		if (syncDate == null) {
+			return result;
+		}
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		String sql = "SELECT USER_ID, STATUS "
+				+ "FROM ( "
+				+ "  SELECT "
+				+ "    CASE WHEN ISNUMERIC(ID) = 1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS USER_ID, "
+				+ "    CASE WHEN ISNUMERIC(Verify) = 1 AND CONVERT(INT, Verify) IN (0,1) THEN CONVERT(INT, Verify) ELSE 1 END AS STATUS, "
+				+ "    ROW_NUMBER() OVER ( "
+				+ "      PARTITION BY ID "
+				+ "      ORDER BY CASE WHEN UPD_DATE IS NULL THEN 1 ELSE 0 END, UPD_DATE DESC, BU_ID DESC "
+				+ "    ) AS RN "
+				+ "  FROM BIO_USERMAST "
+				+ "  WHERE ISNULL(ISDELETED, 0) = 0 "
+				+ "    AND ISNUMERIC(ID) = 1 "
+				+ "    AND CAST(UPD_DATE AS DATE) = ? "
+				+ ") U "
+				+ "WHERE RN = 1 "
+				+ "ORDER BY STATUS DESC, USER_ID ASC";
+		List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, syncDate);
+		for (Map<String, Object> row : rows) {
+			Long userId = parseLong(toText(row.get("USER_ID")));
+			if (userId == null) {
+				continue;
+			}
+			int status = normalizeEnableStatus(Integer.valueOf(toInt(row.get("STATUS"), 1)));
+			result.put(userId, Integer.valueOf(status));
+		}
+		return result;
+	}
+
+	private Set<Long> loadTodayDeletedUserIdsByDelDate() {
+		java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+		java.sql.Date yesterday = new java.sql.Date(today.getTime() - (24L * 60L * 60L * 1000L));
+		Set<Long> result = new LinkedHashSet<Long>();
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		String sql = "SELECT USER_ID "
+				+ "FROM ( "
+				+ "  SELECT "
+				+ "    CASE WHEN ISNUMERIC(ID) = 1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS USER_ID, "
+				+ "    ISNULL(ISDELETED, 0) AS IS_DELETED, "
+				+ "    ROW_NUMBER() OVER ( "
+				+ "      PARTITION BY ID "
+				+ "      ORDER BY CASE WHEN DEL_DATE IS NULL THEN 1 ELSE 0 END, DEL_DATE DESC, BU_ID DESC "
+				+ "    ) AS RN "
+				+ "  FROM BIO_USERMAST "
+				+ "  WHERE ISNUMERIC(ID) = 1 "
+				+ "    AND ISNULL(ISDELETED, 0) = 1 "
+				+ "    AND CAST(DEL_DATE AS DATE) >= ? "
+				+ "    AND CAST(DEL_DATE AS DATE) <= ? "
+				+ ") U "
+				+ "WHERE RN = 1 "
+				+ "  AND IS_DELETED = 1 "
+				+ "ORDER BY USER_ID ASC";
+		List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, yesterday, today);
+		for (Map<String, Object> row : rows) {
+			Long userId = parseLong(toText(row.get("USER_ID")));
+			if (userId != null) {
+				result.add(userId);
+			}
+		}
+		return result;
+	}
+
+	private Set<Long> loadDeletedUserIdsByDelDate(java.sql.Date syncDate) {
+		Set<Long> result = new LinkedHashSet<Long>();
+		if (syncDate == null) {
+			return result;
+		}
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		String sql = "SELECT USER_ID "
+				+ "FROM ( "
+				+ "  SELECT "
+				+ "    CASE WHEN ISNUMERIC(ID) = 1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS USER_ID, "
+				+ "    ISNULL(ISDELETED, 0) AS IS_DELETED, "
+				+ "    ROW_NUMBER() OVER ( "
+				+ "      PARTITION BY ID "
+				+ "      ORDER BY CASE WHEN DEL_DATE IS NULL THEN 1 ELSE 0 END, DEL_DATE DESC, BU_ID DESC "
+				+ "    ) AS RN "
+				+ "  FROM BIO_USERMAST "
+				+ "  WHERE ISNUMERIC(ID) = 1 "
+				+ "    AND ISNULL(ISDELETED, 0) = 1 "
+				+ "    AND CAST(DEL_DATE AS DATE) = ? "
+				+ ") U "
+				+ "WHERE RN = 1 "
+				+ "  AND IS_DELETED = 1 "
+				+ "ORDER BY USER_ID ASC";
+		List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, syncDate);
+		for (Map<String, Object> row : rows) {
+			Long userId = parseLong(toText(row.get("USER_ID")));
+			if (userId != null) {
+				result.add(userId);
+			}
+		}
+		return result;
+	}
+
+	private java.sql.Date parseSqlDate(String value) {
+		if (!hasText(value)) {
+			return null;
+		}
+		try {
+			return java.sql.Date.valueOf(value.trim());
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
 	private Set<Long> loadCurrentDeletedUsers() {
 		Set<Long> result = new LinkedHashSet<Long>();
 		List<Long> deletedUsers = personService.selectDeletedUserIds();
@@ -488,6 +1103,123 @@ public class DatabaseUserDeltaSyncService {
 			}
 		}
 		return new ArrayList<String>(serials);
+	}
+
+	private List<String> getOnlineDeviceSerials(List<String> serials) {
+		List<String> onlineSerials = new ArrayList<String>();
+		if (serials == null || serials.isEmpty()) {
+			return onlineSerials;
+		}
+		for (String serial : serials) {
+			if (isDeviceOnline(serial)) {
+				onlineSerials.add(serial);
+			}
+		}
+		return onlineSerials;
+	}
+
+	private int directSendEnableDisablePhaseCommands(List<Long> userIds, int enFlag, List<String> onlineSerials,
+			String trigger) {
+		if (userIds == null || userIds.isEmpty() || onlineSerials == null || onlineSerials.isEmpty()) {
+			return 0;
+		}
+		int sent = 0;
+		List<String> activeSerials = new ArrayList<String>(onlineSerials);
+		for (int start = 0; start < userIds.size(); start += DIRECT_SEND_USER_BATCH_SIZE) {
+			int end = Math.min(start + DIRECT_SEND_USER_BATCH_SIZE, userIds.size());
+			List<Long> batch = userIds.subList(start, end);
+			for (int i = 0; i < activeSerials.size(); i++) {
+				String serial = activeSerials.get(i);
+				if (!hasText(serial)) {
+					continue;
+				}
+				boolean keepDeviceActive = true;
+				for (Long userId : batch) {
+					if (userId == null) {
+						continue;
+					}
+					if (!WebSocketPool.sendMessageToDeviceStatus(serial, buildEnablePayload(userId, enFlag))) {
+						log.warn(
+								"[DIRECT-STATUS-SEND] socket send stopped for serial={} trigger={} enFlag={} batch={}..{}",
+								serial, trigger, Integer.valueOf(enFlag), Integer.valueOf(start + 1), Integer.valueOf(end));
+						activeSerials.remove(i);
+						i--;
+						keepDeviceActive = false;
+						break;
+					}
+					sent++;
+				}
+				if (!keepDeviceActive && activeSerials.isEmpty()) {
+					return sent;
+				}
+			}
+			pauseDirectSendBatch(start, end, userIds.size());
+		}
+		return sent;
+	}
+
+	private int directSendDeleteCommands(Set<Long> userIds, List<String> onlineSerials, String trigger) {
+		if (userIds == null || userIds.isEmpty() || onlineSerials == null || onlineSerials.isEmpty()) {
+			return 0;
+		}
+		List<Long> orderedUserIds = new ArrayList<Long>(userIds);
+		Collections.sort(orderedUserIds);
+		int sent = 0;
+		List<String> activeSerials = new ArrayList<String>(onlineSerials);
+		for (int start = 0; start < orderedUserIds.size(); start += DIRECT_SEND_USER_BATCH_SIZE) {
+			int end = Math.min(start + DIRECT_SEND_USER_BATCH_SIZE, orderedUserIds.size());
+			List<Long> batch = orderedUserIds.subList(start, end);
+			for (int i = 0; i < activeSerials.size(); i++) {
+				String serial = activeSerials.get(i);
+				if (!hasText(serial)) {
+					continue;
+				}
+				boolean keepDeviceActive = true;
+				for (Long userId : batch) {
+					if (userId == null) {
+						continue;
+					}
+					if (!WebSocketPool.sendMessageToDeviceStatus(serial, buildDeletePayload(userId))) {
+						log.warn(
+								"[DIRECT-DELETE-SEND] socket send stopped for serial={} trigger={} batch={}..{}",
+								serial, trigger, Integer.valueOf(start + 1), Integer.valueOf(end));
+						activeSerials.remove(i);
+						i--;
+						keepDeviceActive = false;
+						break;
+					}
+					sent++;
+				}
+				if (!keepDeviceActive && activeSerials.isEmpty()) {
+					return sent;
+				}
+			}
+			pauseDirectSendBatch(start, end, orderedUserIds.size());
+		}
+		return sent;
+	}
+
+	private void pauseDirectSendBatch(int start, int end, int total) {
+		if (end >= total || DIRECT_SEND_BATCH_PAUSE_MS <= 0L) {
+			return;
+		}
+		try {
+			Thread.sleep(DIRECT_SEND_BATCH_PAUSE_MS);
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			log.warn("[DIRECT-SEND] interrupted between batches start={} end={} total={}", Integer.valueOf(start + 1),
+					Integer.valueOf(end), Integer.valueOf(total));
+		}
+	}
+
+	private long estimateDirectDispatchSeconds(int commandsPerOnlineDevice) {
+		if (commandsPerOnlineDevice <= 0) {
+			return 0L;
+		}
+		long baseSeconds = estimateDeviceDispatchSeconds(commandsPerOnlineDevice);
+		int batches = (int) Math.ceil((double) commandsPerOnlineDevice / (double) DIRECT_SEND_USER_BATCH_SIZE);
+		long pauseSeconds = (long) Math.ceil((double) Math.max(0, batches - 1) * DIRECT_SEND_BATCH_PAUSE_MS / 1000.0d);
+		return baseSeconds + pauseSeconds;
 	}
 
 	private int queueStatusCommands(Map<Long, Integer> changedStatuses, List<String> serials) {
@@ -812,8 +1544,7 @@ public class DatabaseUserDeltaSyncService {
 		MachineCommand command = new MachineCommand();
 		command.setSerial(serial);
 		command.setName("enableuser");
-		command.setContent("{\"cmd\":\"enableuser\",\"enrollid\":" + userId + ",\"enrolled\":" + userId + ",\"enflag\":"
-				+ enFlag + "}");
+		command.setContent(buildEnablePayload(userId, enFlag));
 		command.setStatus(0);
 		command.setSendStatus(0);
 		command.setErrCount(0);
@@ -826,13 +1557,22 @@ public class DatabaseUserDeltaSyncService {
 		MachineCommand command = new MachineCommand();
 		command.setSerial(serial);
 		command.setName("deleteuser");
-		command.setContent("{\"cmd\":\"deleteuser\",\"enrollid\":" + userId + ",\"backupnum\":13}");
+		command.setContent(buildDeletePayload(userId));
 		command.setStatus(0);
 		command.setSendStatus(0);
 		command.setErrCount(0);
 		command.setGmtCrate(new Date());
 		command.setGmtModified(new Date());
 		return command;
+	}
+
+	private String buildEnablePayload(Long userId, int enFlag) {
+		return "{\"cmd\":\"enableuser\",\"enrollid\":" + userId + ",\"enrolled\":" + userId + ",\"enflag\":"
+				+ enFlag + "}";
+	}
+
+	private String buildDeletePayload(Long userId) {
+		return "{\"cmd\":\"deleteuser\",\"enrollid\":" + userId + ",\"backupnum\":13}";
 	}
 
 	private int insertBatch(final List<MachineCommand> commands) {

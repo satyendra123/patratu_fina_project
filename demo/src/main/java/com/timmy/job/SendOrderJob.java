@@ -13,10 +13,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.java_websocket.WebSocket;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timmy.entity.Device;
 import com.timmy.entity.DeviceStatus;
 import com.timmy.entity.MachineCommand;
@@ -33,6 +36,7 @@ public class SendOrderJob extends Thread {
 	private static final int MAX_RETRY_COUNT = 3;
 	private static final long COMMAND_TIMEOUT_MS = 20 * 1000L;
 	private static final Pattern ENROLL_ID_PATTERN = Pattern.compile("\"enrollid\"\\s*:\\s*(\\d+)");
+	private static final ObjectMapper COMMAND_OBJECT_MAPPER = new ObjectMapper();
 
 	@Autowired
 	MachineCommandMapper machineCommandMapper;
@@ -77,15 +81,17 @@ public class SendOrderJob extends Thread {
 
 						List<MachineCommand> pendingCommand = machineCommandMapper.findPendingCommand(1, entry.getKey());
 						if (pendingCommand.size() <= 0) {
-							if (entry.getValue() != null && entry.getValue().getWebSocket() != null) {
+							WebSocket activeSocket = getActiveSocket(entry);
+							if (activeSocket != null) {
 								String payload = normalizePayloadForSend(nextToSend);
-								entry.getValue().getWebSocket().send(payload);
-								machineCommandMapper.updateCommandStatus(0, 1, new Date(), nextToSend.getId());
-								if ("enableuser".equals(nextToSend.getName()) || "deleteuser".equals(nextToSend.getName())
-										|| "setquestionnaire".equals(nextToSend.getName())) {
-									log.info("[SEND-ORDER] sent command id={} serial={} name={} payload={}",
-											nextToSend.getId(), nextToSend.getSerial(), nextToSend.getName(),
-											payload);
+								if (trySend(entry.getKey(), activeSocket, nextToSend, payload, false)) {
+									machineCommandMapper.updateCommandStatus(0, 1, new Date(), nextToSend.getId());
+									if ("enableuser".equals(nextToSend.getName()) || "deleteuser".equals(nextToSend.getName())
+											|| "setquestionnaire".equals(nextToSend.getName())) {
+										log.info("[SEND-ORDER] sent command id={} serial={} name={} payload={}",
+												nextToSend.getId(), nextToSend.getSerial(), nextToSend.getName(),
+												payload);
+									}
 								}
 							}
 						} else {
@@ -108,7 +114,7 @@ public class SendOrderJob extends Thread {
 					}
 				}
 			} catch (Exception e) {
-				// keep polling
+				log.warn("[SEND-ORDER] polling loop exception", e);
 			}
 
 			try {
@@ -127,18 +133,25 @@ public class SendOrderJob extends Thread {
 		if (System.currentTimeMillis() - (pendingToRetry.getRunTime()).getTime() <= COMMAND_TIMEOUT_MS) {
 			return;
 		}
-		if (pendingToRetry.getErrCount() < MAX_RETRY_COUNT) {
-			pendingToRetry.setErrCount(pendingToRetry.getErrCount() + 1);
-			pendingToRetry.setRunTime(new Date());
-			machineCommandMapper.updateByPrimaryKey(pendingToRetry);
-			Device device = deviceMapper.selectDeviceBySerialNum(pendingToRetry.getSerial());
-			if (device != null && device.getStatus() != 0 && entry.getValue() != null
-					&& entry.getValue().getWebSocket() != null) {
-				String payload = normalizePayloadForSend(pendingToRetry);
-				entry.getValue().getWebSocket().send(payload);
+		WebSocket activeSocket = getActiveSocket(entry);
+		if (activeSocket == null) {
+			requeuePendingForReconnect(pendingToRetry, "websocket disconnected; waiting for reconnect");
+			markDeviceOffline(entry == null ? null : entry.getKey(), "retry-timeout-no-active-websocket", null);
+			return;
+		}
+		int currentErrCount = safeErrCount(pendingToRetry);
+		if (currentErrCount < MAX_RETRY_COUNT) {
+			String payload = normalizePayloadForSend(pendingToRetry);
+			if (trySend(entry == null ? null : entry.getKey(), activeSocket, pendingToRetry, payload, true)) {
+				pendingToRetry.setErrCount(Integer.valueOf(currentErrCount + 1));
+				pendingToRetry.setRunTime(new Date());
+				pendingToRetry.setGmtModified(new Date());
+				machineCommandMapper.updateByPrimaryKey(pendingToRetry);
 				log.warn("[SEND-ORDER] retry command id={} serial={} name={} retryCount={}",
 						pendingToRetry.getId(), pendingToRetry.getSerial(), pendingToRetry.getName(),
 						pendingToRetry.getErrCount());
+			} else {
+				requeuePendingForReconnect(pendingToRetry, "retry send failed; queued for reconnect");
 			}
 		} else {
 			machineCommandMapper.updateCommandStatus(2, 0, new Date(), pendingToRetry.getId());
@@ -210,6 +223,67 @@ public class SendOrderJob extends Thread {
 		return null;
 	}
 
+	private WebSocket getActiveSocket(Entry<String, DeviceStatus> entry) {
+		if (entry == null || entry.getKey() == null) {
+			return null;
+		}
+		return WebSocketPool.getDeviceSocketBySn(entry.getKey());
+	}
+
+	private boolean trySend(String serial, WebSocket socket, MachineCommand command, String payload, boolean retry) {
+		if (socket == null || payload == null) {
+			return false;
+		}
+		try {
+			if (!socket.isOpen() || socket.isClosing() || socket.isClosed()) {
+				markDeviceOffline(serial, retry ? "retry-socket-not-open" : "socket-not-open", null);
+				return false;
+			}
+			socket.send(payload);
+			return true;
+		} catch (RuntimeException ex) {
+			markDeviceOffline(serial, retry ? "retry-send-failed" : "send-failed", ex);
+			return false;
+		}
+	}
+
+	private void requeuePendingForReconnect(MachineCommand command, String reason) {
+		if (command == null || command.getId() == null) {
+			return;
+		}
+		command.setStatus(Integer.valueOf(0));
+		command.setSendStatus(Integer.valueOf(0));
+		command.setRunTime(null);
+		command.setGmtModified(new Date());
+		machineCommandMapper.updateByPrimaryKey(command);
+		log.warn("[SEND-ORDER] re-queued command for reconnect. id={} serial={} name={} reason={}",
+				command.getId(), command.getSerial(), command.getName(), reason);
+	}
+
+	private void markDeviceOffline(String serial, String reason, Throwable cause) {
+		if (serial == null || serial.trim().isEmpty()) {
+			return;
+		}
+		WebSocketPool.removeDeviceStatus(serial);
+		try {
+			Device device = deviceMapper == null ? null : deviceMapper.selectDeviceBySerialNum(serial);
+			if (device != null && device.getId() != null && device.getStatus() != 0) {
+				deviceMapper.updateStatusByPrimaryKey(device.getId().intValue(), 0);
+			}
+		} catch (Exception ex) {
+			log.warn("[SEND-ORDER] failed to mark device offline. serial={} reason={}", serial, reason, ex);
+		}
+		if (cause == null) {
+			log.warn("[SEND-ORDER] device marked offline. serial={} reason={}", serial, reason);
+		} else {
+			log.warn("[SEND-ORDER] device marked offline. serial={} reason={}", serial, reason, cause);
+		}
+	}
+
+	private int safeErrCount(MachineCommand command) {
+		return command == null || command.getErrCount() == null ? 0 : command.getErrCount().intValue();
+	}
+
 	private boolean isBlockedSyncCommand(String commandName) {
 		return commandName != null && BLOCKED_SYNC_COMMANDS.contains(commandName);
 	}
@@ -260,10 +334,28 @@ public class SendOrderJob extends Thread {
 		if (command == null || command.getContent() == null) {
 			return command == null ? null : command.getContent();
 		}
+		if ("setuserinfo".equals(command.getName())) {
+			return unwrapSetuserinfoPayload(command.getContent());
+		}
 		if (!"enableuser".equals(command.getName())) {
 			return command.getContent();
 		}
 		return ensureEnableUserPayloadHasEnrolled(command);
+	}
+
+	private String unwrapSetuserinfoPayload(String content) {
+		if (content == null || content.trim().isEmpty()) {
+			return content;
+		}
+		try {
+			JsonNode node = COMMAND_OBJECT_MAPPER.readTree(content);
+			if (node != null && node.has("payload") && node.get("payload") != null && node.get("payload").isObject()) {
+				return node.get("payload").toString();
+			}
+		} catch (Exception ex) {
+			log.debug("[SEND-ORDER] failed to unwrap setuserinfo payload; using original content", ex);
+		}
+		return content;
 	}
 
 	private String ensureEnableUserPayloadHasEnrolled(MachineCommand command) {

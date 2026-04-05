@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 public class UserInfo {
 
+	Long sourceId;
 	@JsonSerialize(using=ToStringSerializer.class)
 	Long enrollId;
 	String name;
@@ -13,6 +14,12 @@ public class UserInfo {
 	Integer status;
 	String imagePath;
 	String record;
+	public Long getSourceId() {
+		return sourceId;
+	}
+	public void setSourceId(Long sourceId) {
+		this.sourceId = sourceId;
+	}
 	public Long getEnrollId() {
 		return enrollId;
 	}
@@ -59,8 +66,9 @@ public class UserInfo {
 	}
 	@Override
 	public String toString() {
-		return "UserInfo [enrollId=" + enrollId + ", name=" + name + ", backupnum=" + backupnum + ", admin=" + admin
-				+ ", status=" + status + ", imagePath=" + imagePath + ", record=" + record + "]";
+		return "UserInfo [sourceId=" + sourceId + ", enrollId=" + enrollId + ", name=" + name + ", backupnum="
+				+ backupnum + ", admin=" + admin + ", status=" + status + ", imagePath=" + imagePath + ", record="
+				+ record + "]";
 	}
 	
 	

@@ -424,20 +424,15 @@
         }
         var lines = [];
         lines.push([
-            "No", "LogId", "PersonId", "Name", "RecordsTime", "InOut", "Device", "Image"
+            "PersonId", "RecordTime", "InOut", "Devices"
         ].map(escapeCsvCell).join(","));
 
         $.each(currentRows, function(index, item) {
-            var imageUrl = buildImageSource(item);
             lines.push([
-                index + 1,
-                item.id,
                 item.enrollId != null ? item.enrollId : "",
-                item.userName ? item.userName : "",
                 item.recordsTime ? item.recordsTime : "",
                 item.intout == 0 ? "In" : "Out",
-                item.deviceSerialNum ? item.deviceSerialNum : "",
-                imageUrl
+                item.deviceSerialNum ? item.deviceSerialNum : ""
             ].map(escapeCsvCell).join(","));
         });
 
