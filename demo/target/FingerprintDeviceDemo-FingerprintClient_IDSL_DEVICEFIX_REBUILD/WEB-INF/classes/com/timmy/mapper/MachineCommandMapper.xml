@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.timmy.mapper.MachineCommandMapper" >
+  <resultMap id="BaseResultMap" type="com.timmy.entity.MachineCommand" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="serial" property="serial" jdbcType="VARCHAR" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="content" property="content" jdbcType="VARCHAR" />
+    <result column="status" property="status" jdbcType="INTEGER" />
+    <result column="send_status" property="sendStatus" jdbcType="INTEGER" />
+    <result column="err_count" property="errCount" jdbcType="INTEGER" />
+    <result column="run_time" property="runTime" jdbcType="TIMESTAMP" />
+    <result column="gmt_crate" property="gmtCrate" jdbcType="TIMESTAMP" />
+    <result column="gmt_modified" property="gmtModified" jdbcType="TIMESTAMP" />
+  </resultMap>
+
+  <sql id="Base_Column_List" >
+    CONVERT(INT, DC_ID) AS id,
+    SLNO AS serial,
+    CASE
+      WHEN CMD_DESC LIKE 'JAVA:%' THEN SUBSTRING(CMD_DESC, 6, 255)
+      ELSE CMD_DESC
+    END AS name,
+    CAST(DC_CMD AS NVARCHAR(MAX)) AS content,
+    ISNULL(CASE WHEN ISNUMERIC(DC_RES) = 1 THEN CONVERT(INT, DC_RES) ELSE NULL END, 0) AS status,
+    ISNULL(CONVERT(INT, IS_DEL_EXECUTED), 0) AS send_status,
+    ISNULL(CONVERT(INT, REF_ID), 0) AS err_count,
+    DC_EXECDATE AS run_time,
+    DC_DATE AS gmt_crate,
+    ISNULL(DC_cmd_date, DC_DATE) AS gmt_modified
+  </sql>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select
+    <include refid="Base_Column_List" />
+    from DEVICECMD
+    where DC_ID = #{id,jdbcType=INTEGER}
+      and CMD_DESC like 'JAVA:%'
+  </select>
+
+  <select id="findPendingCommand" resultMap="BaseResultMap">
+    select top (1000)
+    <include refid="Base_Column_List" />
+    from DEVICECMD WITH (READUNCOMMITTED)
+    where ISNULL(CASE WHEN ISNUMERIC(DC_RES) = 1 THEN CONVERT(INT, DC_RES) ELSE NULL END, 0) = 0
+      and ISNULL(CONVERT(INT, IS_DEL_EXECUTED), 0) = #{sendStatus}
+      and SLNO = #{serial}
+      and ISNULL(CONVERT(INT, REF_ID), 0) != 3
+      and CMD_DESC like 'JAVA:%'
+    order by DC_ID
+  </select>
+
+  <update id="updateCommandStatus" >
+    update DEVICECMD WITH (ROWLOCK)
+    set DC_RES = CONVERT(VARCHAR(10), #{status}),
+      IS_DEL_EXECUTED = CASE WHEN #{sendStatus} = 1 THEN 1 ELSE 0 END,
+      DC_EXECDATE = #{runTime},
+      DC_RESDATE = GETDATE(),
+      DC_cmd_date = GETDATE()
+    where DC_ID = #{id}
+      and CMD_DESC like 'JAVA:%'
+  </update>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from DEVICECMD
+    where DC_ID = #{id,jdbcType=INTEGER}
+      and CMD_DESC like 'JAVA:%'
+  </delete>
+
+  <insert id="insert" parameterType="com.timmy.entity.MachineCommand" >
+    insert into DEVICECMD (
+      SLNO, DC_CMD, DC_DATE, DC_EXECDATE, DC_RES, DC_RESDATE,
+      CMD_DESC, REF_ID, src_sno, DC_cmd_date, IS_DEL_EXECUTED
+    )
+    values (
+      #{serial,jdbcType=VARCHAR},
+      #{content,jdbcType=LONGVARCHAR},
+      ISNULL(#{gmtCrate,jdbcType=TIMESTAMP}, GETDATE()),
+      #{runTime,jdbcType=TIMESTAMP},
+      CONVERT(VARCHAR(10), ISNULL(#{status,jdbcType=INTEGER}, 0)),
+      NULL,
+      'JAVA:' + ISNULL(#{name,jdbcType=VARCHAR}, 'command'),
+      ISNULL(#{errCount,jdbcType=INTEGER}, 0),
+      NULL,
+      ISNULL(#{gmtModified,jdbcType=TIMESTAMP}, GETDATE()),
+      CASE WHEN ISNULL(#{sendStatus,jdbcType=INTEGER}, 0) = 1 THEN 1 ELSE 0 END
+    )
+  </insert>
+
+  <insert id="insertSelective" parameterType="com.timmy.entity.MachineCommand" >
+    insert into DEVICECMD (
+      SLNO, DC_CMD, DC_DATE, DC_EXECDATE, DC_RES, DC_RESDATE,
+      CMD_DESC, REF_ID, src_sno, DC_cmd_date, IS_DEL_EXECUTED
+    )
+    values (
+      #{serial,jdbcType=VARCHAR},
+      #{content,jdbcType=LONGVARCHAR},
+      ISNULL(#{gmtCrate,jdbcType=TIMESTAMP}, GETDATE()),
+      #{runTime,jdbcType=TIMESTAMP},
+      CONVERT(VARCHAR(10), ISNULL(#{status,jdbcType=INTEGER}, 0)),
+      NULL,
+      'JAVA:' + ISNULL(#{name,jdbcType=VARCHAR}, 'command'),
+      ISNULL(#{errCount,jdbcType=INTEGER}, 0),
+      NULL,
+      ISNULL(#{gmtModified,jdbcType=TIMESTAMP}, GETDATE()),
+      CASE WHEN ISNULL(#{sendStatus,jdbcType=INTEGER}, 0) = 1 THEN 1 ELSE 0 END
+    )
+  </insert>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.timmy.entity.MachineCommand" >
+    update DEVICECMD WITH (ROWLOCK)
+    <set >
+      <if test="serial != null" >
+        SLNO = #{serial,jdbcType=VARCHAR},
+      </if>
+      <if test="name != null" >
+        CMD_DESC = 'JAVA:' + #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="content != null" >
+        DC_CMD = #{content,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="status != null" >
+        DC_RES = CONVERT(VARCHAR(10), #{status,jdbcType=INTEGER}),
+      </if>
+      <if test="sendStatus != null" >
+        IS_DEL_EXECUTED = CASE WHEN #{sendStatus,jdbcType=INTEGER} = 1 THEN 1 ELSE 0 END,
+      </if>
+      <if test="errCount != null" >
+        REF_ID = #{errCount,jdbcType=INTEGER},
+      </if>
+      <if test="runTime != null" >
+        DC_EXECDATE = #{runTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="gmtCrate != null" >
+        DC_DATE = #{gmtCrate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="gmtModified != null" >
+        DC_cmd_date = #{gmtModified,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where DC_ID = #{id,jdbcType=INTEGER}
+      and CMD_DESC like 'JAVA:%'
+  </update>
+
+  <update id="updateByPrimaryKey" parameterType="com.timmy.entity.MachineCommand" >
+    update DEVICECMD WITH (ROWLOCK)
+    set
+      SLNO = #{serial,jdbcType=VARCHAR},
+      CMD_DESC = 'JAVA:' + ISNULL(#{name,jdbcType=VARCHAR}, 'command'),
+      DC_CMD = #{content,jdbcType=LONGVARCHAR},
+      DC_RES = CONVERT(VARCHAR(10), ISNULL(#{status,jdbcType=INTEGER}, 0)),
+      IS_DEL_EXECUTED = CASE WHEN ISNULL(#{sendStatus,jdbcType=INTEGER}, 0) = 1 THEN 1 ELSE 0 END,
+      REF_ID = ISNULL(#{errCount,jdbcType=INTEGER}, 0),
+      DC_EXECDATE = #{runTime,jdbcType=TIMESTAMP},
+      DC_DATE = ISNULL(#{gmtCrate,jdbcType=TIMESTAMP}, GETDATE()),
+      DC_cmd_date = ISNULL(#{gmtModified,jdbcType=TIMESTAMP}, GETDATE())
+    where DC_ID = #{id,jdbcType=INTEGER}
+      and CMD_DESC like 'JAVA:%'
+  </update>
+</mapper>

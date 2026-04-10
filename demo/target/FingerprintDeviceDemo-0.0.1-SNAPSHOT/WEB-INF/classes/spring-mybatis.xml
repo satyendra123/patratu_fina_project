@@ -62,6 +62,15 @@
         <!-- 获取连接最大等待时间 --> 
 
         <property name="maxWait" value="${maxWait}"></property> 
+        <property name="validationQuery" value="${validationQuery}"></property>
+        <property name="testOnBorrow" value="${testOnBorrow}"></property>
+        <property name="testWhileIdle" value="${testWhileIdle}"></property>
+        <property name="timeBetweenEvictionRunsMillis" value="${timeBetweenEvictionRunsMillis}"></property>
+        <property name="numTestsPerEvictionRun" value="${numTestsPerEvictionRun}"></property>
+        <property name="minEvictableIdleTimeMillis" value="${minEvictableIdleTimeMillis}"></property>
+        <property name="removeAbandoned" value="${removeAbandoned}"></property>
+        <property name="removeAbandonedTimeout" value="${removeAbandonedTimeout}"></property>
+        <property name="logAbandoned" value="${logAbandoned}"></property>
 
     </bean> 
 
@@ -107,6 +116,7 @@
 		<constructor-arg index="0" type="int" value="7788"></constructor-arg>
 	</bean>
 	<bean id="sendOrderJob" class="com.timmy.job.SendOrderJob" />
+	<bean id="directDeviceKeepaliveScheduler" class="com.timmy.job.DirectDeviceKeepaliveScheduler" />
 	<bean id="deviceDeltaQueueSyncScheduler" class="com.timmy.job.DeviceDeltaQueueSyncScheduler" />
 	<bean id="webSocketPool" class="com.timmy.websocket.WebSocketPool" >
 		

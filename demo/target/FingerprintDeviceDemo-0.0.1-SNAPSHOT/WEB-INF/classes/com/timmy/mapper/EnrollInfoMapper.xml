@@ -489,7 +489,7 @@
       <when test="backupnum == 50">
         IF EXISTS (
           SELECT 1
-          FROM BIO_PICDATA
+          FROM BIO_PICDATA WITH (UPDLOCK, HOLDLOCK)
           WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
         )
         BEGIN
@@ -524,7 +524,7 @@
       <when test="backupnum &gt;= 20 and backupnum &lt;= 27">
         IF EXISTS (
           SELECT 1
-          FROM BIO_FACEDATA
+          FROM BIO_FACEDATA WITH (UPDLOCK, HOLDLOCK)
           WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
             AND CONVERT(INT, FINDEX) = #{backupnum,jdbcType=INTEGER}
         )
