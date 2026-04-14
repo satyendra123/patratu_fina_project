@@ -81,6 +81,7 @@
                         <th>RecordsTime</th>
                         <th>InOut</th>
                         <th>Device</th>
+                        <th>Location Name</th>
                         <th>Log Image</th>
                     </tr>
                 </thead>
@@ -258,7 +259,7 @@
 
         if (!rows || rows.length === 0) {
             $("<tr></tr>")
-                .append($("<td></td>").attr("colspan", 8).text("No records found."))
+                .append($("<td></td>").attr("colspan", 9).text("No records found."))
                 .appendTo(tbody);
             return;
         }
@@ -281,6 +282,7 @@
                 .append($("<td></td>").append(item.recordsTime ? item.recordsTime : "-"))
                 .append($("<td></td>").append(item.intout == 0 ? "In" : "Out"))
                 .append($("<td></td>").append(item.deviceSerialNum ? item.deviceSerialNum : "-"))
+                .append($("<td></td>").append(item.locationName ? item.locationName : "-"))
                 .append(imageTd)
                 .appendTo(tbody);
         });

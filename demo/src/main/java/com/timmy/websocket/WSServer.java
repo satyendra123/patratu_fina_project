@@ -127,6 +127,7 @@ public class WSServer extends WebSocketServer {
 	private final ObjectMapper commandObjectMapper = new ObjectMapper();
 	private final Map<String, Long> recentRelayEchoExpiryByKey = new ConcurrentHashMap<String, Long>();
 
+
 	// private Timer timer;
 	public WSServer(InetSocketAddress address) {
 		super(address);
@@ -607,6 +608,7 @@ public class WSServer extends WebSocketServer {
 		logger.info("WebSocket server started on 0.0.0.0:{}", configuredPort);
 
 	}
+
 
 	public void updateCommandStatus(String serial, String commandType) {
 		updateCommandStatus(serial, commandType, null);
@@ -2582,6 +2584,7 @@ public class WSServer extends WebSocketServer {
 		}
 		return null;
 	}
+
 }
 
 

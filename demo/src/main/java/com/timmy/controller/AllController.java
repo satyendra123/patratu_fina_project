@@ -584,6 +584,168 @@ public class AllController extends ControllerBase {
 		return serials.size();
 	}
 
+	private List<Long> parseEnrollIdsCsv(String enrollIdsText) {
+		Set<Long> ids = new LinkedHashSet<Long>();
+		if (!hasText(enrollIdsText)) {
+			return new ArrayList<Long>();
+		}
+		String[] tokens = enrollIdsText.split("[,\\s]+");
+		for (String token : tokens) {
+			if (!hasText(token)) {
+				continue;
+			}
+			String normalized = token.trim();
+			if (!normalized.matches("\\d+")) {
+				continue;
+			}
+			try {
+				long value = Long.parseLong(normalized);
+				if (value > 0L) {
+					ids.add(Long.valueOf(value));
+				}
+			} catch (NumberFormatException ex) {
+				// ignore invalid token
+			}
+		}
+		return new ArrayList<Long>(ids);
+	}
+
+	private List<String> parseSerialsCsv(String serialsText) {
+		Set<String> serials = new LinkedHashSet<String>();
+		if (!hasText(serialsText)) {
+			return new ArrayList<String>();
+		}
+		String[] tokens = serialsText.split("[,\\s]+");
+		for (String token : tokens) {
+			if (hasText(token)) {
+				serials.add(token.trim());
+			}
+		}
+		return new ArrayList<String>(serials);
+	}
+
+	private List<UserInfo> buildUserInfoRecordsForDirectSend(Long enrollId, Person person, List<EnrollInfo> enrollInfos) {
+		List<UserInfo> records = new ArrayList<UserInfo>();
+		if (enrollId == null || person == null || enrollInfos == null || enrollInfos.isEmpty()) {
+			return records;
+		}
+		for (EnrollInfo enrollInfo : enrollInfos) {
+			if (enrollInfo == null || enrollInfo.getBackupnum() == null || !isSupportedSetBackupNum(enrollInfo.getBackupnum())
+					|| !hasText(enrollInfo.getSignatures())) {
+				continue;
+			}
+			UserInfo info = new UserInfo();
+			info.setEnrollId(enrollId);
+			info.setName(person.getName() == null ? "" : person.getName());
+			info.setAdmin(person.getRollId() == null ? 0 : person.getRollId());
+			info.setBackupnum(enrollInfo.getBackupnum().intValue());
+			info.setRecord(enrollInfo.getSignatures());
+			info.setSourceId(enrollInfo.getId() == null ? null : Long.valueOf(enrollInfo.getId().longValue()));
+			records.add(info);
+		}
+		java.util.Collections.sort(records, new java.util.Comparator<UserInfo>() {
+			@Override
+			public int compare(UserInfo left, UserInfo right) {
+				long leftId = left == null || left.getSourceId() == null ? Long.MAX_VALUE : left.getSourceId().longValue();
+				long rightId = right == null || right.getSourceId() == null ? Long.MAX_VALUE : right.getSourceId().longValue();
+				return Long.compare(leftId, rightId);
+			}
+		});
+		return records;
+	}
+
+	private int directSendSetUserInfoRecords(List<UserInfo> records, List<String> onlineSerials) {
+		if (records == null || records.isEmpty() || onlineSerials == null || onlineSerials.isEmpty()) {
+			return 0;
+		}
+		int sent = 0;
+		List<String> activeSerials = new ArrayList<String>(onlineSerials);
+		for (int start = 0; start < records.size(); start += 50) {
+			int end = Math.min(start + 50, records.size());
+			List<UserInfo> batch = records.subList(start, end);
+			for (int i = 0; i < activeSerials.size(); i++) {
+				String serial = activeSerials.get(i);
+				if (!hasText(serial)) {
+					continue;
+				}
+				boolean keepDeviceActive = true;
+				for (UserInfo info : batch) {
+					if (info == null || info.getEnrollId() == null) {
+						continue;
+					}
+					String payload = buildSetUserInfoPayload(info.getEnrollId(), info.getName(), info.getBackupnum(),
+							sanitizeAdminForDevice(info.getEnrollId(), Integer.valueOf(info.getAdmin())), info.getRecord());
+					if (!WebSocketPool.sendMessageToDeviceStatus(serial, payload)) {
+						activeSerials.remove(i);
+						i--;
+						keepDeviceActive = false;
+						break;
+					}
+					sent++;
+				}
+				if (!keepDeviceActive && activeSerials.isEmpty()) {
+					return sent;
+				}
+			}
+			if (end < records.size()) {
+				try {
+					Thread.sleep(20L);
+				} catch (InterruptedException ex) {
+					Thread.currentThread().interrupt();
+					return sent;
+				}
+			}
+		}
+		return sent;
+	}
+
+	private int directSendEnableCommands(List<Long> enrollIds, Map<Long, Integer> enableByUserId, List<String> onlineSerials) {
+		if (enrollIds == null || enrollIds.isEmpty() || enableByUserId == null || enableByUserId.isEmpty()
+				|| onlineSerials == null || onlineSerials.isEmpty()) {
+			return 0;
+		}
+		int sent = 0;
+		List<String> activeSerials = new ArrayList<String>(onlineSerials);
+		for (int start = 0; start < enrollIds.size(); start += 50) {
+			int end = Math.min(start + 50, enrollIds.size());
+			List<Long> batch = enrollIds.subList(start, end);
+			for (int i = 0; i < activeSerials.size(); i++) {
+				String serial = activeSerials.get(i);
+				if (!hasText(serial)) {
+					continue;
+				}
+				boolean keepDeviceActive = true;
+				for (Long enrollId : batch) {
+					if (enrollId == null) {
+						continue;
+					}
+					Integer enFlag = enableByUserId.get(enrollId);
+					String payload = "{\"cmd\":\"enableuser\",\"enrollid\":" + enrollId + ",\"enrolled\":" + enrollId
+							+ ",\"enflag\":" + (enFlag == null ? 0 : enFlag.intValue()) + "}";
+					if (!WebSocketPool.sendMessageToDeviceStatus(serial, payload)) {
+						activeSerials.remove(i);
+						i--;
+						keepDeviceActive = false;
+						break;
+					}
+					sent++;
+				}
+				if (!keepDeviceActive && activeSerials.isEmpty()) {
+					return sent;
+				}
+			}
+			if (end < enrollIds.size()) {
+				try {
+					Thread.sleep(20L);
+				} catch (InterruptedException ex) {
+					Thread.currentThread().interrupt();
+					return sent;
+				}
+			}
+		}
+		return sent;
+	}
+
 	private void queueDeleteUserFromDevice(Long enrollId, String deviceSn) {
 		if (enrollId == null || !hasText(deviceSn)) {
 			return;
@@ -2251,9 +2413,8 @@ public class AllController extends ControllerBase {
 		}
 		Person person = new Person();
 		person = personService.selectByPrimaryKey(enrollId);
-		EnrollInfo enrollInfo = new EnrollInfo();
 		System.out.println("ba" + backupNum);
-		enrollInfo = enrollInfoService.selectByBackupnum(enrollId, backupNum);
+		EnrollInfo enrollInfo = enrollInfoService.selectByBackupnum(enrollId, backupNum);
 		int enFlag = normalizeEnableStatus(person.getStatus());
 		if (enrollInfo != null) {
 			personService.setUserToDevice(enrollId, person.getName(), backupNum, person.getRollId(),
@@ -2519,9 +2680,14 @@ public class AllController extends ControllerBase {
 					whereParams.add(normalizedSn);
 				}
 				if (!normalizedKeyword.isEmpty()) {
-					whereClause += " AND (CHARINDEX(?, ISNULL(A.USER_CODE, '')) > 0 OR CHARINDEX(?, ISNULL(U.NAME, '')) > 0)";
-					whereParams.add(normalizedKeyword);
-					whereParams.add(normalizedKeyword);
+					if (isExactUserIdKeyword(normalizedKeyword)) {
+						whereClause += " AND LTRIM(RTRIM(ISNULL(A.USER_CODE, ''))) = LTRIM(RTRIM(?))";
+						whereParams.add(normalizedKeyword);
+					} else {
+						whereClause += " AND (CHARINDEX(?, ISNULL(A.USER_CODE, '')) > 0 OR CHARINDEX(?, ISNULL(U.NAME, '')) > 0)";
+						whereParams.add(normalizedKeyword);
+						whereParams.add(normalizedKeyword);
+					}
 				}
 				if (normalizedFromTime != null) {
 					whereClause += " AND A.ATT_DATETIME >= CONVERT(DATETIME, ?, 120)";
@@ -2602,6 +2768,7 @@ public class AllController extends ControllerBase {
 						+ "ISNULL(CASE WHEN ISNUMERIC(L.INOUT_ID) = 1 THEN CONVERT(INT, L.INOUT_ID) ELSE NULL END, 0) AS intout, "
 						+ "ISNULL(CASE WHEN ISNUMERIC(L.COL3) = 1 THEN CONVERT(INT, L.COL3) ELSE NULL END, 0) AS event, "
 						+ "ISNULL(L.SLNO, '') AS deviceSerialNum, "
+						+ "ISNULL(NULLIF(LTRIM(RTRIM((SELECT TOP 1 n.NET_AREA FROM NetWork n WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(L.SLNO)) ORDER BY n.ID DESC))), ''), 'Unmapped') AS locationName, "
 						+ "ISNULL(CASE WHEN ISNUMERIC(L.COL5) = 1 THEN CONVERT(FLOAT, L.COL5) ELSE NULL END, 0) AS temperature, "
 						+ "ISNULL(L.COL6, '') AS image " + "FROM LatestLogs L "
 						+ "ORDER BY L.ATT_DATETIME DESC, L.ATT_ID DESC";
@@ -2644,9 +2811,14 @@ public class AllController extends ControllerBase {
 				whereClause += " AND LTRIM(RTRIM(ISNULL(A.SLNO, ''))) = LTRIM(RTRIM(?))";
 				whereParams.add(normalizedSn);
 			}
-			whereClause += " AND (CHARINDEX(?, ISNULL(A.USER_CODE, '')) > 0 OR CHARINDEX(?, ISNULL(U.NAME, '')) > 0)";
-			whereParams.add(normalizedKeyword);
-			whereParams.add(normalizedKeyword);
+			if (isExactUserIdKeyword(normalizedKeyword)) {
+				whereClause += " AND LTRIM(RTRIM(ISNULL(A.USER_CODE, ''))) = LTRIM(RTRIM(?))";
+				whereParams.add(normalizedKeyword);
+			} else {
+				whereClause += " AND (CHARINDEX(?, ISNULL(A.USER_CODE, '')) > 0 OR CHARINDEX(?, ISNULL(U.NAME, '')) > 0)";
+				whereParams.add(normalizedKeyword);
+				whereParams.add(normalizedKeyword);
+			}
 			if (normalizedFromTime != null) {
 				whereClause += " AND A.ATT_DATETIME >= CONVERT(DATETIME, ?, 120)";
 				whereParams.add(normalizedFromTime);
@@ -2662,6 +2834,7 @@ public class AllController extends ControllerBase {
 					+ "ISNULL(CASE WHEN ISNUMERIC(A.INOUT_ID) = 1 THEN CONVERT(INT, A.INOUT_ID) ELSE NULL END, 0) AS intout, "
 					+ "ISNULL(CASE WHEN ISNUMERIC(A.COL3) = 1 THEN CONVERT(INT, A.COL3) ELSE NULL END, 0) AS event, "
 					+ "ISNULL(U.NAME, '') AS userName, " + "ISNULL(A.SLNO, '') AS deviceSerialNum, "
+					+ "ISNULL(NULLIF(LTRIM(RTRIM((SELECT TOP 1 n.NET_AREA FROM NetWork n WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(A.SLNO)) ORDER BY n.ID DESC))), ''), 'Unmapped') AS locationName, "
 					+ "ISNULL(CASE WHEN ISNUMERIC(A.COL5) = 1 THEN CONVERT(FLOAT, A.COL5) ELSE NULL END, 0) AS temperature, "
 					+ "ISNULL(A.COL6, '') AS image " + fromClause + whereClause
 					+ " ORDER BY A.ATT_DATETIME DESC, A.ATT_ID DESC OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
@@ -2697,6 +2870,10 @@ public class AllController extends ControllerBase {
 				|| normalizedToTime != null;
 	}
 
+	private boolean isExactUserIdKeyword(String keyword) {
+		return hasText(keyword) && keyword.matches("\\d+");
+	}
+
 	private List<Map<String, Object>> queryFilteredLatestRecordRows(JdbcTemplate jdbcTemplate, String fromClause,
 			String whereClause, List<Object> whereParams, int pageNum, int pageSize) {
 		int effectivePageNum = pageNum < 1 ? 1 : pageNum;
@@ -2708,6 +2885,7 @@ public class AllController extends ControllerBase {
 				+ "ISNULL(CASE WHEN ISNUMERIC(A.INOUT_ID) = 1 THEN CONVERT(INT, A.INOUT_ID) ELSE NULL END, 0) AS intout, "
 				+ "ISNULL(CASE WHEN ISNUMERIC(A.COL3) = 1 THEN CONVERT(INT, A.COL3) ELSE NULL END, 0) AS event, "
 				+ "ISNULL(U.NAME, '') AS userName, " + "ISNULL(A.SLNO, '') AS deviceSerialNum, "
+				+ "ISNULL(NULLIF(LTRIM(RTRIM((SELECT TOP 1 n.NET_AREA FROM NetWork n WHERE LTRIM(RTRIM(n.SLNO)) = LTRIM(RTRIM(A.SLNO)) ORDER BY n.ID DESC))), ''), 'Unmapped') AS locationName, "
 				+ "ISNULL(CASE WHEN ISNUMERIC(A.COL5) = 1 THEN CONVERT(FLOAT, A.COL5) ELSE NULL END, 0) AS temperature, "
 				+ "ISNULL(A.COL6, '') AS image, " + "COUNT(1) OVER() AS totalMatched " + fromClause + whereClause + ") X "
 				+ "ORDER BY X.recordsTime DESC, X.id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -2796,6 +2974,7 @@ public class AllController extends ControllerBase {
 			}
 			record.setUserName(hasText(userName) ? userName : "");
 			record.setDeviceSerialNum(row.get("deviceSerialNum") == null ? "" : String.valueOf(row.get("deviceSerialNum")));
+			record.setLocationName(row.get("locationName") == null ? "" : String.valueOf(row.get("locationName")));
 			Object tempObj = row.get("temperature");
 			record.setTemperature(tempObj instanceof Number ? ((Number) tempObj).doubleValue() : 0.0d);
 			record.setImage(row.get("image") == null ? "" : String.valueOf(row.get("image")));
@@ -3462,6 +3641,138 @@ public class AllController extends ControllerBase {
 		}
 		return Msg.success().add("devices", serials.size()).add("inactiveUsers", inactiveUsers)
 				.add("commandsQueued", queued);
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/deleteUserFromAllDevices", method = RequestMethod.GET)
+	public Msg deleteUserFromAllDevices(@RequestParam("enrollId") Long enrollId) {
+		if (enrollId == null || enrollId.longValue() <= 0L) {
+			return Msg.fail().add("error", "Valid enrollId is required.");
+		}
+		List<String> serials = getAllKnownDeviceSerials();
+		if (serials.isEmpty()) {
+			return Msg.fail().add("error", "No devices found in database.").add("enrollId", enrollId);
+		}
+		String message = "{\"cmd\":\"deleteuser\",\"enrollid\":" + enrollId + ",\"backupnum\":13}";
+		int onlineDevices = 0;
+		int sent = 0;
+		for (String serial : serials) {
+			if (!isDeviceOnline(serial)) {
+				continue;
+			}
+			onlineDevices++;
+			if (WebSocketPool.sendMessageToDeviceStatus(serial, message)) {
+				sent++;
+			}
+		}
+		int offlineDevices = Math.max(0, serials.size() - onlineDevices);
+		if (onlineDevices <= 0) {
+			return Msg.fail().add("error", "No online devices found for direct delete send.").add("enrollId", enrollId)
+					.add("devices", serials.size()).add("onlineDevices", 0).add("offlineDevices", offlineDevices)
+					.add("commandsSent", 0);
+		}
+		if (sent <= 0) {
+			return Msg.fail().add("error", "Delete command could not be sent to online devices.").add("enrollId", enrollId)
+					.add("devices", serials.size()).add("onlineDevices", onlineDevices)
+					.add("offlineDevices", offlineDevices).add("commandsSent", 0);
+		}
+		return Msg.success().add("enrollId", enrollId).add("devices", serials.size()).add("onlineDevices", onlineDevices)
+				.add("offlineDevices", offlineDevices).add("commandsSent", sent);
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/onlineDevicesForDirectUserSend", method = RequestMethod.GET)
+	public Msg onlineDevicesForDirectUserSend() {
+		List<Device> devices = deviceService.findAllDevice();
+		List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
+		for (Device device : devices) {
+			if (device == null || !hasText(device.getSerialNum())) {
+				continue;
+			}
+			String serial = device.getSerialNum().trim();
+			if (!isDeviceOnline(serial)) {
+				continue;
+			}
+			Map<String, Object> row = new LinkedHashMap<String, Object>();
+			row.put("serialNum", serial);
+			row.put("online", Boolean.TRUE);
+			rows.add(row);
+		}
+		return Msg.success().add("devices", rows).add("count", rows.size());
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/directSendUsersToSelectedDevices", method = RequestMethod.GET)
+	public Msg directSendUsersToSelectedDevices(@RequestParam("enrollIds") String enrollIdsText,
+			@RequestParam("deviceSns") String deviceSnsText) {
+		List<Long> enrollIds = parseEnrollIdsCsv(enrollIdsText);
+		if (enrollIds.isEmpty()) {
+			return Msg.fail().add("error", "Please enter valid numeric IDs separated by comma.");
+		}
+		List<String> requestedSerials = parseSerialsCsv(deviceSnsText);
+		if (requestedSerials.isEmpty()) {
+			return Msg.fail().add("error", "Please select at least one online device.");
+		}
+		List<String> onlineSerials = new ArrayList<String>();
+		for (String serial : requestedSerials) {
+			if (hasText(serial) && isDeviceOnline(serial)) {
+				onlineSerials.add(serial.trim());
+			}
+		}
+		if (onlineSerials.isEmpty()) {
+			return Msg.fail().add("error", "Selected devices are not online.").add("requestedDevices", requestedSerials.size())
+					.add("onlineDevices", 0).add("offlineDevices", requestedSerials.size());
+		}
+		int usersFound = 0;
+		int missingUsers = 0;
+		int imageRecordsPlanned = 0;
+		List<Long> missingIds = new ArrayList<Long>();
+		List<Long> foundUserIds = new ArrayList<Long>();
+		Map<Long, Integer> enableByUserId = new LinkedHashMap<Long, Integer>();
+		List<UserInfo> allRecordsToSend = new ArrayList<UserInfo>();
+		for (Long enrollId : enrollIds) {
+			if (enrollId == null) {
+				continue;
+			}
+			Person person = personService.selectByPrimaryKey(enrollId);
+			if (person == null) {
+				missingUsers++;
+				missingIds.add(enrollId);
+				continue;
+			}
+			List<EnrollInfo> enrollInfos = enrollInfoService.selectByEnrollId(enrollId);
+			List<UserInfo> userRecords = buildUserInfoRecordsForDirectSend(enrollId, person, enrollInfos);
+			if (userRecords.isEmpty()) {
+				missingUsers++;
+				missingIds.add(enrollId);
+				continue;
+			}
+			usersFound++;
+			foundUserIds.add(enrollId);
+			enableByUserId.put(enrollId, Integer.valueOf(normalizeEnableStatus(person.getStatus())));
+			allRecordsToSend.addAll(userRecords);
+			for (UserInfo info : userRecords) {
+				if (info != null && info.getBackupnum() == 50) {
+					imageRecordsPlanned += onlineSerials.size();
+				}
+			}
+		}
+		if (usersFound <= 0) {
+			return Msg.fail().add("error", "No matching users with registration data found.")
+					.add("requestedIds", enrollIds.size()).add("missingUsers", missingUsers).add("missingIds", missingIds)
+					.add("devices", requestedSerials.size()).add("onlineDevices", onlineSerials.size())
+					.add("offlineDevices", Math.max(0, requestedSerials.size() - onlineSerials.size()))
+					.add("commandsSent", 0);
+		}
+		int setuserinfoSent = directSendSetUserInfoRecords(allRecordsToSend, onlineSerials);
+		int enableSent = directSendEnableCommands(foundUserIds, enableByUserId, onlineSerials);
+		return Msg.success().add("requestedIds", enrollIds.size()).add("usersFound", usersFound)
+				.add("missingUsers", missingUsers).add("missingIds", missingIds)
+				.add("devices", requestedSerials.size()).add("onlineDevices", onlineSerials.size())
+				.add("offlineDevices", Math.max(0, requestedSerials.size() - onlineSerials.size()))
+				.add("selectedDevices", onlineSerials).add("setuserinfoSent", setuserinfoSent)
+				.add("imageRecordsPlanned", imageRecordsPlanned).add("enableCommandsSent", enableSent)
+				.add("commandsSent", setuserinfoSent + enableSent);
 	}
 
 	@RequestMapping(value = "/synchronizeTime", method = RequestMethod.GET)

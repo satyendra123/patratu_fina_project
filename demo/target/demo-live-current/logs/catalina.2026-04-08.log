@@ -1,0 +1,671 @@
+08-Apr-2026 19:14:52.974 SEVERE [main] org.apache.catalina.startup.Catalina.stopServer Could not contact [localhost:18005] (base port [18005] and offset [0]). Tomcat may not be running.
+08-Apr-2026 19:15:13.988 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 19:15:13.993 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 19:15:13.993 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 19:15:13.993 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 19:15:13.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 19:15:13.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 19:15:13.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 19:15:13.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 19:15:13.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 19:15:13.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:15:13.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:15:13.999 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 19:15:13.999 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 19:15:13.999 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:15:13.999 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:15:13.999 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 19:15:14.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 19:15:14.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 19:15:14.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:15:14.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:15:14.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 19:15:14.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:15:14.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:15:14.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 19:15:14.074 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 19:15:14.074 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 19:15:14.074 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 19:15:14.090 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 19:15:14.484 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 19:15:14.500 SEVERE [main] org.apache.catalina.util.LifecycleBase.handleSubClassException Failed to initialize component [Connector["http-nio-8080"]]
+	org.apache.catalina.LifecycleException: Protocol handler initialization failed
+		at org.apache.catalina.connector.Connector.initInternal(Connector.java:1084)
+		at org.apache.catalina.util.LifecycleBase.init(LifecycleBase.java:122)
+		at org.apache.catalina.core.StandardService.initInternal(StandardService.java:520)
+		at org.apache.catalina.util.LifecycleBase.init(LifecycleBase.java:122)
+		at org.apache.catalina.core.StandardServer.initInternal(StandardServer.java:984)
+		at org.apache.catalina.util.LifecycleBase.init(LifecycleBase.java:122)
+		at org.apache.catalina.startup.Catalina.load(Catalina.java:687)
+		at org.apache.catalina.startup.Catalina.load(Catalina.java:710)
+		at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+		at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+		at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+		at java.lang.reflect.Method.invoke(Method.java:498)
+		at org.apache.catalina.startup.Bootstrap.load(Bootstrap.java:299)
+		at org.apache.catalina.startup.Bootstrap.main(Bootstrap.java:472)
+	Caused by: java.net.BindException: Address already in use: bind
+		at sun.nio.ch.Net.bind0(Native Method)
+		at sun.nio.ch.Net.bind(Net.java:461)
+		at sun.nio.ch.Net.bind(Net.java:453)
+		at sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:222)
+		at org.apache.tomcat.util.net.NioEndpoint.initServerSocket(NioEndpoint.java:296)
+		at org.apache.tomcat.util.net.NioEndpoint.bind(NioEndpoint.java:251)
+		at org.apache.tomcat.util.net.AbstractEndpoint.bindWithCleanup(AbstractEndpoint.java:1497)
+		at org.apache.tomcat.util.net.AbstractEndpoint.init(AbstractEndpoint.java:1510)
+		at org.apache.coyote.AbstractProtocol.init(AbstractProtocol.java:667)
+		at org.apache.coyote.http11.AbstractHttp11Protocol.init(AbstractHttp11Protocol.java:80)
+		at org.apache.catalina.connector.Connector.initInternal(Connector.java:1082)
+		... 13 more
+08-Apr-2026 19:15:14.500 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [769] milliseconds
+08-Apr-2026 19:15:14.548 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 19:15:14.549 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 19:15:14.560 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 19:15:17.877 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 19:15:21.074 WARNING [main] org.apache.catalina.util.SessionIdGeneratorBase.createSecureRandom Creation of SecureRandom instance for session ID generation using [SHA1PRNG] took [159] milliseconds.
+08-Apr-2026 19:15:22.269 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [7,708] ms
+08-Apr-2026 19:15:22.269 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 19:15:22.319 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [50] ms
+08-Apr-2026 19:15:22.319 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 19:15:23.114 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [795] ms
+08-Apr-2026 19:15:23.114 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 19:15:23.169 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [55] ms
+08-Apr-2026 19:15:23.169 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 19:15:23.242 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [72] ms
+08-Apr-2026 19:15:23.242 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 19:15:23.290 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [48] ms
+08-Apr-2026 19:15:23.296 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [8794] milliseconds
+08-Apr-2026 19:21:56.318 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:21:56.324 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:21:56.330 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 19:21:56.399 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 19:21:56.399 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 19:21:56.399 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 19:21:56.415 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 19:21:56.778 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 19:21:56.794 SEVERE [main] org.apache.catalina.util.LifecycleBase.handleSubClassException Failed to initialize component [Connector["http-nio-8080"]]
+	org.apache.catalina.LifecycleException: Protocol handler initialization failed
+		at org.apache.catalina.connector.Connector.initInternal(Connector.java:1084)
+		at org.apache.catalina.util.LifecycleBase.init(LifecycleBase.java:122)
+		at org.apache.catalina.core.StandardService.initInternal(StandardService.java:520)
+		at org.apache.catalina.util.LifecycleBase.init(LifecycleBase.java:122)
+		at org.apache.catalina.core.StandardServer.initInternal(StandardServer.java:984)
+		at org.apache.catalina.util.LifecycleBase.init(LifecycleBase.java:122)
+		at org.apache.catalina.startup.Catalina.load(Catalina.java:687)
+		at org.apache.catalina.startup.Catalina.load(Catalina.java:710)
+		at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+		at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+		at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+		at java.lang.reflect.Method.invoke(Method.java:498)
+		at org.apache.catalina.startup.Bootstrap.load(Bootstrap.java:299)
+		at org.apache.catalina.startup.Bootstrap.main(Bootstrap.java:472)
+	Caused by: java.net.BindException: Address already in use: bind
+		at sun.nio.ch.Net.bind0(Native Method)
+		at sun.nio.ch.Net.bind(Net.java:461)
+		at sun.nio.ch.Net.bind(Net.java:453)
+		at sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:222)
+		at org.apache.tomcat.util.net.NioEndpoint.initServerSocket(NioEndpoint.java:296)
+		at org.apache.tomcat.util.net.NioEndpoint.bind(NioEndpoint.java:251)
+		at org.apache.tomcat.util.net.AbstractEndpoint.bindWithCleanup(AbstractEndpoint.java:1497)
+		at org.apache.tomcat.util.net.AbstractEndpoint.init(AbstractEndpoint.java:1510)
+		at org.apache.coyote.AbstractProtocol.init(AbstractProtocol.java:667)
+		at org.apache.coyote.http11.AbstractHttp11Protocol.init(AbstractHttp11Protocol.java:80)
+		at org.apache.catalina.connector.Connector.initInternal(Connector.java:1082)
+		... 13 more
+08-Apr-2026 19:21:56.796 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [703] milliseconds
+08-Apr-2026 19:21:56.835 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 19:21:56.837 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 19:21:56.849 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 19:22:00.312 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 19:22:03.368 WARNING [main] org.apache.catalina.util.SessionIdGeneratorBase.createSecureRandom Creation of SecureRandom instance for session ID generation using [SHA1PRNG] took [162] milliseconds.
+08-Apr-2026 19:22:04.774 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [7,925] ms
+08-Apr-2026 19:22:04.776 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 19:22:04.819 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [43] ms
+08-Apr-2026 19:22:04.819 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 19:22:05.458 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [639] ms
+08-Apr-2026 19:22:05.458 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 19:22:05.518 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [60] ms
+08-Apr-2026 19:22:05.520 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 19:22:05.573 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [53] ms
+08-Apr-2026 19:22:05.573 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 19:22:05.607 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [34] ms
+08-Apr-2026 19:22:05.613 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [8815] milliseconds
+08-Apr-2026 19:22:05.840 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [] received
+08-Apr-2026 19:31:12.245 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 19:31:12.251 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 19:31:12.251 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 19:31:12.251 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 19:31:12.251 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 19:31:12.252 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 19:31:12.252 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 19:31:12.252 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 19:31:12.252 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 19:31:12.252 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:31:12.252 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:31:12.268 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 19:31:12.268 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 19:31:12.268 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:31:12.268 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:31:12.268 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 19:31:12.268 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 19:31:12.269 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 19:31:12.269 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:31:12.269 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:31:12.269 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 19:31:12.269 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:31:12.269 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:31:12.269 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 19:31:12.315 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 19:31:12.315 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 19:31:12.315 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 19:31:12.340 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 19:31:12.898 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 19:31:12.955 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [978] milliseconds
+08-Apr-2026 19:31:13.015 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 19:31:13.015 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 19:31:13.029 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 19:31:17.895 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 19:31:25.513 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [12,478] ms
+08-Apr-2026 19:31:25.514 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 19:31:25.604 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [90] ms
+08-Apr-2026 19:31:25.605 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 19:31:26.708 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [1,103] ms
+08-Apr-2026 19:31:26.710 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 19:31:26.786 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [78] ms
+08-Apr-2026 19:31:26.786 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 19:31:26.869 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [83] ms
+08-Apr-2026 19:31:26.869 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 19:31:26.931 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [61] ms
+08-Apr-2026 19:31:26.936 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 19:31:26.957 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [14001] milliseconds
+08-Apr-2026 19:34:45.265 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 19:34:45.270 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 19:34:45.270 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 19:34:45.272 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 19:34:45.272 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 19:34:45.272 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 19:34:45.272 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 19:34:45.272 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 19:34:45.272 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 19:34:45.272 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:34:45.272 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:34:45.276 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 19:34:45.278 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:34:45.280 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:34:45.280 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 19:34:45.294 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 19:34:45.294 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 19:34:45.294 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 19:34:45.313 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 19:34:45.774 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 19:34:45.798 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [793] milliseconds
+08-Apr-2026 19:34:45.840 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 19:34:45.840 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 19:34:45.851 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 19:34:49.652 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 19:34:56.664 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [10,811] ms
+08-Apr-2026 19:34:56.664 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 19:34:56.719 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [55] ms
+08-Apr-2026 19:34:56.720 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 19:34:57.548 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [828] ms
+08-Apr-2026 19:34:57.549 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 19:34:57.658 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [107] ms
+08-Apr-2026 19:34:57.658 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 19:34:57.726 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [67] ms
+08-Apr-2026 19:34:57.726 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 19:34:57.781 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [55] ms
+08-Apr-2026 19:34:57.786 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 19:34:57.807 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [12008] milliseconds
+08-Apr-2026 19:39:29.374 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 19:39:29.380 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 19:39:29.381 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 19:39:29.381 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 19:39:29.381 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 19:39:29.381 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 19:39:29.381 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 19:39:29.381 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 19:39:29.381 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 19:39:29.381 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:39:29.382 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:39:29.387 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 19:39:29.387 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 19:39:29.387 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:39:29.387 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:39:29.387 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 19:39:29.387 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 19:39:29.388 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 19:39:29.388 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 19:39:29.388 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 19:39:29.388 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 19:39:29.388 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:39:29.388 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 19:39:29.388 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 19:39:29.402 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 19:39:29.402 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 19:39:29.402 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 19:39:29.437 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 19:39:29.819 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 19:39:29.843 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [746] milliseconds
+08-Apr-2026 19:39:29.887 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 19:39:29.888 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 19:39:29.901 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 19:39:33.581 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 19:39:40.595 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [10,692] ms
+08-Apr-2026 19:39:40.595 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 19:39:40.655 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [60] ms
+08-Apr-2026 19:39:40.655 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 19:39:41.516 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [861] ms
+08-Apr-2026 19:39:41.516 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 19:39:41.627 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [111] ms
+08-Apr-2026 19:39:41.627 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 19:39:41.693 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [66] ms
+08-Apr-2026 19:39:41.693 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 19:39:41.740 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [46] ms
+08-Apr-2026 19:39:41.746 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 19:39:41.764 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [11919] milliseconds
+08-Apr-2026 20:08:36.338 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 20:08:36.344 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 20:08:36.344 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 20:08:36.344 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 20:08:36.344 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 20:08:36.345 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 20:08:36.345 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 20:08:36.345 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 20:08:36.345 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 20:08:36.345 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:08:36.345 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:08:36.350 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 20:08:36.350 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 20:08:36.350 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:08:36.350 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:08:36.350 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 20:08:36.350 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 20:08:36.350 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 20:08:36.351 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:08:36.351 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:08:36.351 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 20:08:36.351 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:08:36.351 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:08:36.351 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 20:08:36.363 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 20:08:36.363 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 20:08:36.363 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 20:08:36.378 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 20:08:36.744 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:08:36.769 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [666] milliseconds
+08-Apr-2026 20:08:36.809 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 20:08:36.810 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 20:08:36.821 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 20:08:39.917 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 20:08:45.420 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [8,595] ms
+08-Apr-2026 20:08:45.421 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 20:08:45.464 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [43] ms
+08-Apr-2026 20:08:45.465 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 20:08:46.078 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [613] ms
+08-Apr-2026 20:08:46.078 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 20:08:46.134 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [56] ms
+08-Apr-2026 20:08:46.134 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 20:08:46.184 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [50] ms
+08-Apr-2026 20:08:46.185 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 20:08:46.224 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [39] ms
+08-Apr-2026 20:08:46.228 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:08:46.243 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [9473] milliseconds
+08-Apr-2026 20:12:58.103 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 20:12:58.144 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 20:12:58.144 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 20:12:58.144 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 20:12:58.144 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 20:12:58.145 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 20:12:58.145 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 20:12:58.145 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 20:12:58.145 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 20:12:58.145 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:12:58.146 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:12:58.166 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 20:12:58.166 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 20:12:58.166 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:12:58.166 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:12:58.167 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 20:12:58.167 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 20:12:58.167 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 20:12:58.167 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:12:58.167 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:12:58.167 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 20:12:58.167 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:12:58.168 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:12:58.168 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 20:12:58.253 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 20:12:58.253 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 20:12:58.253 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 20:12:58.279 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 20:12:58.845 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:12:58.873 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [1120] milliseconds
+08-Apr-2026 20:12:58.920 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 20:12:58.922 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 20:12:58.937 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 20:13:04.093 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 20:13:12.765 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [13,826] ms
+08-Apr-2026 20:13:12.766 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 20:13:12.873 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [107] ms
+08-Apr-2026 20:13:12.873 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 20:13:14.664 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [1,791] ms
+08-Apr-2026 20:13:14.664 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 20:13:14.799 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [135] ms
+08-Apr-2026 20:13:14.801 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 20:13:15.001 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [200] ms
+08-Apr-2026 20:13:15.003 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 20:13:15.069 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [66] ms
+08-Apr-2026 20:13:15.076 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:13:15.104 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [16230] milliseconds
+08-Apr-2026 20:17:54.494 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 20:17:54.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 20:17:54.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 20:17:54.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 20:17:54.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 20:17:54.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 20:17:54.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 20:17:54.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 20:17:54.508 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 20:17:54.508 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:17:54.508 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:17:54.523 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 20:17:54.523 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 20:17:54.523 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:17:54.523 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:17:54.523 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 20:17:54.524 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 20:17:54.524 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 20:17:54.524 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:17:54.524 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:17:54.524 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 20:17:54.524 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:17:54.524 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:17:54.524 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 20:17:54.569 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 20:17:54.570 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 20:17:54.570 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 20:17:54.588 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 20:17:55.061 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:17:55.087 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [779] milliseconds
+08-Apr-2026 20:17:55.133 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 20:17:55.134 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 20:17:55.146 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 20:17:58.831 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 20:18:05.497 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [10,349] ms
+08-Apr-2026 20:18:05.497 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 20:18:05.548 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [51] ms
+08-Apr-2026 20:18:05.549 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 20:18:06.273 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [724] ms
+08-Apr-2026 20:18:06.274 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 20:18:06.346 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [72] ms
+08-Apr-2026 20:18:06.347 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 20:18:06.406 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [58] ms
+08-Apr-2026 20:18:06.406 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 20:18:06.450 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [44] ms
+08-Apr-2026 20:18:06.454 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:18:06.484 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [11396] milliseconds
+08-Apr-2026 20:36:21.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 20:36:21.625 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 20:36:21.625 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 20:36:21.626 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 20:36:21.626 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 20:36:21.626 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 20:36:21.626 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 20:36:21.626 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 20:36:21.627 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 20:36:21.627 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:36:21.627 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:36:21.631 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:36:21.633 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 20:36:21.645 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 20:36:21.646 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 20:36:21.646 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 20:36:21.664 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 20:36:22.042 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:36:22.065 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [657] milliseconds
+08-Apr-2026 20:36:22.107 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 20:36:22.107 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 20:36:22.123 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 20:36:25.660 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 20:36:32.408 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [10,284] ms
+08-Apr-2026 20:36:32.409 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 20:36:32.460 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [51] ms
+08-Apr-2026 20:36:32.461 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 20:36:33.241 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [780] ms
+08-Apr-2026 20:36:33.242 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 20:36:33.304 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [62] ms
+08-Apr-2026 20:36:33.306 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 20:36:33.359 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [52] ms
+08-Apr-2026 20:36:33.359 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 20:36:33.411 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [51] ms
+08-Apr-2026 20:36:33.417 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:36:33.436 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [11370] milliseconds
+08-Apr-2026 20:44:29.097 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 20:44:29.104 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 20:44:29.104 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 20:44:29.104 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 20:44:29.104 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 20:44:29.105 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 20:44:29.105 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 20:44:29.105 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 20:44:29.105 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 20:44:29.105 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:44:29.105 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:44:29.124 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 20:44:29.196 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 20:44:29.197 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 20:44:29.197 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 20:44:29.218 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 20:44:29.632 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:44:29.657 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [753] milliseconds
+08-Apr-2026 20:44:29.747 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 20:44:29.752 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 20:44:29.769 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 20:44:33.609 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 20:44:41.207 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [11,436] ms
+08-Apr-2026 20:44:41.208 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 20:44:41.273 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [66] ms
+08-Apr-2026 20:44:41.273 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 20:44:42.347 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [1,074] ms
+08-Apr-2026 20:44:42.348 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 20:44:42.419 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [71] ms
+08-Apr-2026 20:44:42.419 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 20:44:42.498 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [79] ms
+08-Apr-2026 20:44:42.498 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 20:44:42.598 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [99] ms
+08-Apr-2026 20:44:42.603 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:44:42.621 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [12964] milliseconds
+08-Apr-2026 20:59:05.606 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 20:59:05.611 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:59:05.613 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:59:05.617 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 20:59:05.617 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 20:59:05.617 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:59:05.617 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 20:59:05.619 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 20:59:05.633 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 20:59:05.633 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 20:59:05.633 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 20:59:05.651 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 20:59:06.016 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:59:06.041 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [635] milliseconds
+08-Apr-2026 20:59:06.083 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 20:59:06.083 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 20:59:06.098 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 20:59:09.511 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 20:59:16.433 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [10,333] ms
+08-Apr-2026 20:59:16.434 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 20:59:16.514 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [80] ms
+08-Apr-2026 20:59:16.515 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 20:59:17.230 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [715] ms
+08-Apr-2026 20:59:17.231 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 20:59:17.291 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [60] ms
+08-Apr-2026 20:59:17.291 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 20:59:17.369 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [78] ms
+08-Apr-2026 20:59:17.385 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 20:59:17.439 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [54] ms
+08-Apr-2026 20:59:17.445 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 20:59:17.463 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [11421] milliseconds
+08-Apr-2026 21:08:02.122 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 21:08:02.129 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 21:08:02.133 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 21:08:02.135 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 21:08:02.149 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 21:08:02.149 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 21:08:02.150 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 21:08:02.168 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 21:08:02.549 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 21:08:02.583 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [676] milliseconds
+08-Apr-2026 21:08:02.621 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 21:08:02.621 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 21:08:02.632 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 21:08:05.954 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 21:08:12.179 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [9,546] ms
+08-Apr-2026 21:08:12.180 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 21:08:12.236 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [55] ms
+08-Apr-2026 21:08:12.236 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 21:08:12.948 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [712] ms
+08-Apr-2026 21:08:12.949 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 21:08:13.043 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [94] ms
+08-Apr-2026 21:08:13.043 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 21:08:13.104 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [61] ms
+08-Apr-2026 21:08:13.105 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 21:08:13.156 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [52] ms
+08-Apr-2026 21:08:13.164 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 21:08:13.182 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [10598] milliseconds
+08-Apr-2026 21:09:24.987 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.115
+08-Apr-2026 21:09:24.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 21 2026 08:17:26 UTC
+08-Apr-2026 21:09:24.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 9.0.115.0
+08-Apr-2026 21:09:24.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Windows 11
+08-Apr-2026 21:09:24.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            10.0
+08-Apr-2026 21:09:24.994 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+08-Apr-2026 21:09:24.995 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             C:\Program Files\Eclipse Adoptium\jdk-8.0.482.8-hotspot\jre
+08-Apr-2026 21:09:24.995 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_482-b08
+08-Apr-2026 21:09:24.995 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Temurin
+08-Apr-2026 21:09:24.995 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 21:09:24.995 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 21:09:25.000 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\conf\logging.properties
+08-Apr-2026 21:09:25.000 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+08-Apr-2026 21:09:25.000 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 21:09:25.000 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 21:09:25.000 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+08-Apr-2026 21:09:25.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+08-Apr-2026 21:09:25.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsun.io.useCanonCaches=false
+08-Apr-2026 21:09:25.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.library.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin
+08-Apr-2026 21:09:25.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dsqlserver.auth.dll.path=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\bin\mssql-jdbc_auth-13.2.1.x64.dll
+08-Apr-2026 21:09:25.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+08-Apr-2026 21:09:25.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 21:09:25.001 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current
+08-Apr-2026 21:09:25.002 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=d:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\temp
+08-Apr-2026 21:09:25.015 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent Loaded Apache Tomcat Native library [1.3.5] using APR version [1.7.6].
+08-Apr-2026 21:09:25.016 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+08-Apr-2026 21:09:25.016 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+08-Apr-2026 21:09:25.033 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL successfully initialized [OpenSSL 3.0.18 30 Sep 2025]
+08-Apr-2026 21:09:25.410 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 21:09:25.432 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [643] milliseconds
+08-Apr-2026 21:09:25.476 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+08-Apr-2026 21:09:25.476 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/9.0.115]
+08-Apr-2026 21:09:25.498 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo]
+08-Apr-2026 21:09:29.023 INFO [main] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+08-Apr-2026 21:09:36.459 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\demo] has finished in [10,959] ms
+08-Apr-2026 21:09:36.460 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs]
+08-Apr-2026 21:09:36.518 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\docs] has finished in [58] ms
+08-Apr-2026 21:09:36.518 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples]
+08-Apr-2026 21:09:37.267 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\examples] has finished in [749] ms
+08-Apr-2026 21:09:37.267 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager]
+08-Apr-2026 21:09:37.330 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\host-manager] has finished in [63] ms
+08-Apr-2026 21:09:37.331 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager]
+08-Apr-2026 21:09:37.392 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\manager] has finished in [61] ms
+08-Apr-2026 21:09:37.392 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT]
+08-Apr-2026 21:09:37.440 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [D:\housys\newwork\JAVA_2512\JAVA_2512\demo\target\demo-live-current\webapps\ROOT] has finished in [48] ms
+08-Apr-2026 21:09:37.445 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+08-Apr-2026 21:09:37.463 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [12030] milliseconds

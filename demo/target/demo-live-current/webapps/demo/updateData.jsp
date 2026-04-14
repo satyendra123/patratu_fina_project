@@ -71,6 +71,31 @@
 	.run-state.failed {
 		color: #c62828;
 	}
+	.device-checklist {
+		margin-top: 12px;
+		max-height: 220px;
+		overflow-y: auto;
+		border: 1px solid #d9e2ec;
+		border-radius: 6px;
+		padding: 10px 12px;
+		background: #fbfdff;
+	}
+	.device-check-item {
+		display: block;
+		margin-bottom: 8px;
+		font-size: 13px;
+		font-weight: 400;
+	}
+	.device-check-item:last-child {
+		margin-bottom: 0;
+	}
+	.device-inline-row {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		flex-wrap: wrap;
+		margin-top: 12px;
+	}
 </style>
 </head>
 <body>
@@ -92,10 +117,39 @@
 						<button class="btn btn-danger" id="syncDeleteByDateBtn" style="margin-left:8px;">SyncDelete</button>
 					</div>
 
-					<div id="syncStatusResult" class="result-box" style="margin-top:18px;">Status sync result yahan dikhega.</div>
-					<div id="syncDeleteResult" class="result-box">Delete sync result yahan dikhega.</div>
+					<div id="syncStatusResult" class="result-box" style="margin-top:18px;">Update Sync Result:</div>
+					<div id="syncDeleteResult" class="result-box">Delete Sync Result:</div>
 					<div id="runStateMsg" class="run-state">Idle</div>
 				</div>
+
+				<div class="sync-card">
+					<div class="sync-title">delete user from all devices</div>
+					<div class="form-inline">
+						<label for="deleteEnrollIdInput" style="margin-right:8px;">User ID</label>
+						<input type="text" id="deleteEnrollIdInput" class="form-control" placeholder="Enter User ID" style="width:220px;">
+						<button class="btn btn-danger" id="deleteUserAllDevicesBtn" style="margin-left:10px;">Delete From All Devices</button>
+					</div>
+
+					<div id="deleteUserAllDevicesResult" class="result-box" style="margin-top:18px;">Result:</div>
+				</div>
+
+				<div class="sync-card">
+					<div class="sync-title">send users to selected online devices</div>
+					<div class="form-group" style="margin-bottom:0;">
+						<label for="multiEnrollIdsInput" style="margin-bottom:8px;">User IDs</label>
+						<input type="text" id="multiEnrollIdsInput" class="form-control" placeholder="490625, 518795, 447129">
+					</div>
+					<div class="device-inline-row">
+						<label class="device-check-item" style="margin-bottom:0;">
+							<input type="checkbox" id="selectAllOnlineDevices"> All Devices
+						</label>
+						<button class="btn btn-default btn-sm" id="refreshOnlineDevicesBtn" type="button">Refresh Devices</button>
+						<button class="btn btn-primary" id="sendUsersSelectedDevicesBtn" type="button">Send To Selected Devices</button>
+					</div>
+					<div id="onlineDevicesList" class="device-checklist">Loading online devices...</div>
+					<div id="sendUsersSelectedDevicesResult" class="result-box" style="margin-top:18px;">Result:</div>
+				</div>
+
 			</div>
 		</div>
 	</div>
@@ -139,6 +193,67 @@
 		$("#syncStatusByDateBtn").prop("disabled", isSyncRunning);
 		$("#syncDeleteByDateBtn").prop("disabled", isSyncRunning);
 		$("#syncDateInput").prop("disabled", isSyncRunning);
+		$("#deleteUserAllDevicesBtn").prop("disabled", isSyncRunning);
+		$("#deleteEnrollIdInput").prop("disabled", isSyncRunning);
+		$("#multiEnrollIdsInput").prop("disabled", isSyncRunning);
+		$("#refreshOnlineDevicesBtn").prop("disabled", isSyncRunning);
+		$("#sendUsersSelectedDevicesBtn").prop("disabled", isSyncRunning);
+		$("#selectAllOnlineDevices").prop("disabled", isSyncRunning);
+		$(".online-device-checkbox").prop("disabled", isSyncRunning);
+	}
+
+	function getSelectedOnlineDeviceSerials(){
+		var selected = [];
+		$(".online-device-checkbox:checked").each(function(){
+			var serial = $.trim($(this).val());
+			if(serial !== ""){
+				selected.push(serial);
+			}
+		});
+		return selected;
+	}
+
+	function syncSelectAllDevicesCheckbox(){
+		var total = $(".online-device-checkbox").length;
+		var checked = $(".online-device-checkbox:checked").length;
+		$("#selectAllOnlineDevices").prop("checked", total > 0 && total === checked);
+	}
+
+	function renderOnlineDevices(devices){
+		var $list = $("#onlineDevicesList");
+		$list.empty();
+		if(!devices || !devices.length){
+			$list.text("No online devices found.");
+			$("#selectAllOnlineDevices").prop("checked", false);
+			return;
+		}
+		$.each(devices, function(_, item){
+			var serial = item && item.serialNum ? item.serialNum : "";
+			if(serial === ""){
+				return;
+			}
+			var $label = $("<label></label>").addClass("device-check-item");
+			var $checkbox = $("<input>").attr("type", "checkbox").addClass("online-device-checkbox").val(serial);
+			$label.append($checkbox).append(" " + serial);
+			$list.append($label);
+		});
+		syncSelectAllDevicesCheckbox();
+	}
+
+	function loadOnlineDevices(){
+		$("#onlineDevicesList").text("Loading online devices...");
+		$.ajax({
+			url: "${APP_PATH}/onlineDevicesForDirectUserSend",
+			type: "GET",
+			cache: false,
+			success: function(result){
+				var ext = (result && result.extend) ? result.extend : {};
+				renderOnlineDevices(ext.devices || []);
+			},
+			error: function(){
+				$("#onlineDevicesList").text("Failed to load online devices.");
+			}
+		});
 	}
 
 	function buildStatusText(ext){
@@ -177,6 +292,7 @@
 			language: 'en'
 		});
 		$("#syncDateInput").val(formatDate(new Date()));
+		loadOnlineDevices();
 
 		$("#syncStatusByDateBtn").click(function(){
 			if(isSyncRunning){
@@ -184,12 +300,12 @@
 			}
 			var syncDate = getSelectedDate();
 			if(syncDate === ""){
-				setResult($("#syncStatusResult"), false, "Please select a date.");
+				setResult($("#syncStatusResult"), false, "Update Sync Result: Please select a date.");
 				return;
 			}
 			setSyncUiBusy(true);
 			setRunState("running", "Status sync is running for " + syncDate + ". Please wait...");
-			setResult($("#syncStatusResult"), true, "Running direct status send for " + syncDate + " ...");
+			setResult($("#syncStatusResult"), true, "Update Sync Result: Running direct status send for " + syncDate + " ...");
 			$.ajax({
 				url: "${APP_PATH}/syncUsersStatusByUpdDateAllDevices",
 				type: "GET",
@@ -199,11 +315,11 @@
 					var ext = (result && result.extend) ? result.extend : {};
 					var text = buildStatusText(ext);
 					var ok = result && result.code === 100;
-					setResult($("#syncStatusResult"), ok, text + ((result && result.code !== 100 && ext.error) ? " | error=" + ext.error : ""));
+					setResult($("#syncStatusResult"), ok, "Update Sync Result: " + text + ((result && result.code !== 100 && ext.error) ? " | error=" + ext.error : ""));
 					setRunState(ok ? "success" : "failed", ok ? ("Status sync SUCCESS for " + syncDate) : ("Status sync FAILED for " + syncDate));
 				},
 				error: function(){
-					setResult($("#syncStatusResult"), false, "Direct status send failed for " + syncDate + ".");
+					setResult($("#syncStatusResult"), false, "Update Sync Result: Direct status send failed for " + syncDate + ".");
 					setRunState("failed", "Status sync FAILED for " + syncDate);
 				},
 				complete: function(){
@@ -218,12 +334,12 @@
 			}
 			var syncDate = getSelectedDate();
 			if(syncDate === ""){
-				setResult($("#syncDeleteResult"), false, "Please select a date.");
+				setResult($("#syncDeleteResult"), false, "Delete Sync Result: Please select a date.");
 				return;
 			}
 			setSyncUiBusy(true);
 			setRunState("running", "Delete sync is running for " + syncDate + ". Please wait...");
-			setResult($("#syncDeleteResult"), true, "Running direct delete send for " + syncDate + " ...");
+			setResult($("#syncDeleteResult"), true, "Delete Sync Result: Running direct delete send for " + syncDate + " ...");
 			$.ajax({
 				url: "${APP_PATH}/syncUsersDeleteByDelDateAllDevices",
 				type: "GET",
@@ -233,15 +349,134 @@
 					var ext = (result && result.extend) ? result.extend : {};
 					var text = buildDeleteText(ext);
 					var ok = result && result.code === 100;
-					setResult($("#syncDeleteResult"), ok, text + ((result && result.code !== 100 && ext.error) ? " | error=" + ext.error : ""));
+					setResult($("#syncDeleteResult"), ok, "Delete Sync Result: " + text + ((result && result.code !== 100 && ext.error) ? " | error=" + ext.error : ""));
 					setRunState(ok ? "success" : "failed", ok ? ("Delete sync SUCCESS for " + syncDate) : ("Delete sync FAILED for " + syncDate));
 				},
 				error: function(){
-					setResult($("#syncDeleteResult"), false, "Direct delete send failed for " + syncDate + ".");
+					setResult($("#syncDeleteResult"), false, "Delete Sync Result: Direct delete send failed for " + syncDate + ".");
 					setRunState("failed", "Delete sync FAILED for " + syncDate);
 				},
 				complete: function(){
 					setSyncUiBusy(false);
+				}
+			});
+		});
+
+		$("#deleteUserAllDevicesBtn").click(function(){
+			if(isSyncRunning){
+				return;
+			}
+			var enrollId = $.trim($("#deleteEnrollIdInput").val());
+			if(enrollId === ""){
+				setResult($("#deleteUserAllDevicesResult"), false, "Result: Please enter user ID.");
+				return;
+			}
+			if(!/^[0-9]+$/.test(enrollId)){
+				setResult($("#deleteUserAllDevicesResult"), false, "Result: Please enter valid numeric user ID.");
+				return;
+			}
+			setSyncUiBusy(true);
+			setRunState("running", "Delete by ID is running for user " + enrollId + ". Please wait...");
+			setResult($("#deleteUserAllDevicesResult"), true, "Result: Sending delete command for user " + enrollId + " to all devices ...");
+			$.ajax({
+				url: "${APP_PATH}/deleteUserFromAllDevices",
+				type: "GET",
+				cache: false,
+				data: { enrollId: enrollId },
+				success: function(result){
+					var ext = (result && result.extend) ? result.extend : {};
+					var ok = result && result.code === 100;
+					var text = "Delete by ID | userId=" + enrollId
+						+ ", devices=" + (ext.devices || 0)
+						+ ", onlineDevices=" + (ext.onlineDevices || 0)
+						+ ", offlineDevices=" + (ext.offlineDevices || 0)
+						+ ", commandsSent=" + (ext.commandsSent || 0);
+					if(!ok && ext.error){
+						text += " | error=" + ext.error;
+					}
+					setResult($("#deleteUserAllDevicesResult"), ok, "Result: " + text);
+					setRunState(ok ? "success" : "failed", ok ? ("Delete by ID SENT for user " + enrollId) : ("Delete by ID FAILED for user " + enrollId));
+				},
+				error: function(){
+					setResult($("#deleteUserAllDevicesResult"), false, "Result: Delete by ID failed for user " + enrollId + ".");
+					setRunState("failed", "Delete by ID FAILED for user " + enrollId);
+				},
+				complete: function(){
+					setSyncUiBusy(false);
+				}
+			});
+		});
+
+		$("#refreshOnlineDevicesBtn").click(function(){
+			if(isSyncRunning){
+				return;
+			}
+			loadOnlineDevices();
+		});
+
+		$(document).on("change", ".online-device-checkbox", function(){
+			syncSelectAllDevicesCheckbox();
+		});
+
+		$("#selectAllOnlineDevices").change(function(){
+			var checked = $(this).is(":checked");
+			$(".online-device-checkbox").prop("checked", checked);
+		});
+
+		$("#sendUsersSelectedDevicesBtn").click(function(){
+			if(isSyncRunning){
+				return;
+			}
+			var enrollIds = $.trim($("#multiEnrollIdsInput").val());
+			if(enrollIds === ""){
+				setResult($("#sendUsersSelectedDevicesResult"), false, "Result: Please enter user IDs.");
+				return;
+			}
+			var selectedDevices = getSelectedOnlineDeviceSerials();
+			if(!selectedDevices.length){
+				setResult($("#sendUsersSelectedDevicesResult"), false, "Result: Please select online devices.");
+				return;
+			}
+			setSyncUiBusy(true);
+			setRunState("running", "Selected device send is running. Please wait...");
+			setResult($("#sendUsersSelectedDevicesResult"), true, "Result: Sending registration data to selected online devices ...");
+			$.ajax({
+				url: "${APP_PATH}/directSendUsersToSelectedDevices",
+				type: "GET",
+				cache: false,
+				data: { enrollIds: enrollIds, deviceSns: selectedDevices.join(",") },
+				success: function(result){
+					var ext = (result && result.extend) ? result.extend : {};
+					var ok = result && result.code === 100;
+					var text = "Result: requestedIds=" + (ext.requestedIds || 0)
+						+ ", usersFound=" + (ext.usersFound || 0)
+						+ ", missingUsers=" + (ext.missingUsers || 0)
+						+ ", devices=" + (ext.devices || 0)
+						+ ", onlineDevices=" + (ext.onlineDevices || 0)
+						+ ", offlineDevices=" + (ext.offlineDevices || 0)
+						+ ", setuserinfoSent=" + (ext.setuserinfoSent || 0)
+						+ ", imageRecordsPlanned=" + (ext.imageRecordsPlanned || 0)
+						+ ", enableCommandsSent=" + (ext.enableCommandsSent || 0)
+						+ ", commandsSent=" + (ext.commandsSent || 0);
+					if(ext.missingIds && ext.missingIds.length){
+						text += ", missingIds=" + ext.missingIds.join(",");
+					}
+					if(ext.selectedDevices && ext.selectedDevices.length){
+						text += ", selectedDevices=" + ext.selectedDevices.join(",");
+					}
+					if(!ok && ext.error){
+						text += " | error=" + ext.error;
+					}
+					setResult($("#sendUsersSelectedDevicesResult"), ok, text);
+					setRunState(ok ? "success" : "failed", ok ? "Selected device send SUCCESS" : "Selected device send FAILED");
+				},
+				error: function(){
+					setResult($("#sendUsersSelectedDevicesResult"), false, "Result: Selected device send failed.");
+					setRunState("failed", "Selected device send FAILED");
+				},
+				complete: function(){
+					setSyncUiBusy(false);
+					loadOnlineDevices();
 				}
 			});
 		});

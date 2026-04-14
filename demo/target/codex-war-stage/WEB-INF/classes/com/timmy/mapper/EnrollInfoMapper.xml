@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.timmy.mapper.EnrollInfoMapper" >
+  <resultMap id="BaseResultMap" type="com.timmy.entity.EnrollInfo" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="enroll_id" property="enrollId" jdbcType="BIGINT" />
+    <result column="backupnum" property="backupnum" jdbcType="INTEGER" />
+    <result column="imagepath" property="imagePath" jdbcType="VARCHAR" />
+  </resultMap>
+
+  <resultMap id="ResultMapWithBLOBs" type="com.timmy.entity.EnrollInfo" extends="BaseResultMap" >
+    <!-- Force StringTypeHandler to avoid SQLServer varchar->CLOB conversion issues -->
+    <result column="signatures" property="signatures" jdbcType="VARCHAR" typeHandler="org.apache.ibatis.type.StringTypeHandler" />
+  </resultMap>
+
+  <sql id="FaceDataColumnList">
+    CONVERT(INT, BP_ID) AS id,
+    CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS enroll_id,
+    CONVERT(INT, FINDEX) AS backupnum,
+    NULL AS imagepath,
+    CAST(FPTMP AS NVARCHAR(MAX)) AS signatures
+  </sql>
+
+  <sql id="PicDataColumnList">
+    CONVERT(INT, BP_ID) AS id,
+    CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS enroll_id,
+    50 AS backupnum,
+    NULL AS imagepath,
+    CAST(IMAGE AS NVARCHAR(MAX)) AS signatures
+  </sql>
+
+  <sql id="PasswordColumnList">
+    CONVERT(INT, BU_ID) AS id,
+    CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS enroll_id,
+    10 AS backupnum,
+    NULL AS imagepath,
+    PASSWD AS signatures
+  </sql>
+
+  <sql id="CardColumnList">
+    CONVERT(INT, BU_ID) AS id,
+    CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS enroll_id,
+    11 AS backupnum,
+    NULL AS imagepath,
+    CARDNO AS signatures
+  </sql>
+
+  <select id="selectByBackupnum" resultMap="ResultMapWithBLOBs">
+    <choose>
+      <when test="backupnum == 10">
+        SELECT TOP 1
+          <include refid="PasswordColumnList" />
+        FROM BIO_USERMAST
+        WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+          AND ISNULL(ISDELETED, 0) = 0
+          AND ISNULL(PASSWD, '') &lt;&gt; ''
+        ORDER BY BU_ID DESC
+      </when>
+      <when test="backupnum == 11">
+        SELECT TOP 1
+          <include refid="CardColumnList" />
+        FROM BIO_USERMAST
+        WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+          AND ISNULL(ISDELETED, 0) = 0
+          AND ISNULL(CARDNO, '') &lt;&gt; ''
+        ORDER BY BU_ID DESC
+      </when>
+      <when test="backupnum == 50">
+        SELECT TOP 1
+          <include refid="PicDataColumnList" />
+        FROM BIO_PICDATA
+        WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+        ORDER BY BP_ID DESC
+      </when>
+      <when test="backupnum &gt;= 20 and backupnum &lt;= 27">
+        SELECT TOP 1
+          <include refid="FaceDataColumnList" />
+        FROM BIO_FACEDATA
+        WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+          AND CONVERT(INT, FINDEX) = #{backupnum,jdbcType=INTEGER}
+        ORDER BY BP_ID DESC
+      </when>
+      <otherwise>
+        SELECT TOP 0
+          <include refid="FaceDataColumnList" />
+        FROM BIO_FACEDATA
+      </otherwise>
+    </choose>
+  </select>
+
+  <select id="selectAll" resultMap="ResultMapWithBLOBs">
+    ;WITH active_users AS (
+      SELECT ID
+      FROM BIO_USERMAST
+      WHERE ISNULL(ISDELETED, 0) = 0
+        AND CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END IS NOT NULL
+    ),
+    latest_face AS (
+      SELECT
+        BIO_FACEDATA.*,
+        ROW_NUMBER() OVER (PARTITION BY ID, FINDEX ORDER BY BP_ID DESC) AS rn
+      FROM BIO_FACEDATA
+      WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END IS NOT NULL
+        AND CONVERT(INT, FINDEX) BETWEEN 20 AND 27
+    ),
+    latest_pic AS (
+      SELECT
+        BIO_PICDATA.*,
+        ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BP_ID DESC) AS rn
+      FROM BIO_PICDATA
+      WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END IS NOT NULL
+    ),
+    latest_user AS (
+      SELECT
+        BIO_USERMAST.*,
+        ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn
+      FROM BIO_USERMAST
+      WHERE ISNULL(ISDELETED, 0) = 0
+        AND CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END IS NOT NULL
+    )
+    SELECT
+      <include refid="FaceDataColumnList" />
+    FROM latest_face
+    WHERE rn = 1
+      AND ID IN (SELECT ID FROM active_users)
+    UNION ALL
+    SELECT
+      <include refid="PicDataColumnList" />
+    FROM latest_pic
+    WHERE rn = 1
+      AND ID IN (SELECT ID FROM active_users)
+    UNION ALL
+    SELECT
+      <include refid="PasswordColumnList" />
+    FROM latest_user
+    WHERE rn = 1
+      AND ISNULL(PASSWD, '') &lt;&gt; ''
+    UNION ALL
+    SELECT
+      <include refid="CardColumnList" />
+    FROM latest_user
+    WHERE rn = 1
+      AND ISNULL(CARDNO, '') &lt;&gt; ''
+  </select>
+
+  <select id="selectByPrimaryKey" resultMap="ResultMapWithBLOBs" parameterType="java.lang.Integer" >
+    SELECT TOP 1 *
+    FROM (
+      SELECT
+        <include refid="FaceDataColumnList" />
+      FROM BIO_FACEDATA
+      WHERE BP_ID = #{id,jdbcType=INTEGER}
+      UNION ALL
+      SELECT
+        <include refid="PicDataColumnList" />
+      FROM BIO_PICDATA
+      WHERE BP_ID = #{id,jdbcType=INTEGER}
+      UNION ALL
+      SELECT
+        <include refid="PasswordColumnList" />
+      FROM BIO_USERMAST
+      WHERE BU_ID = #{id,jdbcType=INTEGER}
+        AND ISNULL(PASSWD, '') &lt;&gt; ''
+      UNION ALL
+      SELECT
+        <include refid="CardColumnList" />
+      FROM BIO_USERMAST
+      WHERE BU_ID = #{id,jdbcType=INTEGER}
+        AND ISNULL(CARDNO, '') &lt;&gt; ''
+    ) x
+  </select>
+
+  <select id="selectByEnrollId" resultMap="ResultMapWithBLOBs" parameterType="java.lang.Long">
+    ;WITH latest_face AS (
+      SELECT
+        BIO_FACEDATA.*,
+        ROW_NUMBER() OVER (PARTITION BY ID, FINDEX ORDER BY BP_ID DESC) AS rn
+      FROM BIO_FACEDATA
+      WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+        AND CONVERT(INT, FINDEX) BETWEEN 20 AND 27
+    ),
+    latest_pic AS (
+      SELECT
+        BIO_PICDATA.*,
+        ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BP_ID DESC) AS rn
+      FROM BIO_PICDATA
+      WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+    ),
+    latest_user AS (
+      SELECT
+        BIO_USERMAST.*,
+        ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn
+      FROM BIO_USERMAST
+      WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+        AND ISNULL(ISDELETED, 0) = 0
+    )
+    SELECT
+      <include refid="FaceDataColumnList" />
+    FROM latest_face
+    WHERE rn = 1
+    UNION ALL
+    SELECT
+      <include refid="PicDataColumnList" />
+    FROM latest_pic
+    WHERE rn = 1
+    UNION ALL
+    SELECT
+      <include refid="PasswordColumnList" />
+    FROM latest_user
+    WHERE rn = 1
+      AND ISNULL(PASSWD, '') &lt;&gt; ''
+    UNION ALL
+    SELECT
+      <include refid="CardColumnList" />
+    FROM latest_user
+    WHERE rn = 1
+      AND ISNULL(CARDNO, '') &lt;&gt; ''
+    ORDER BY backupnum
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    DELETE FROM BIO_FACEDATA
+    WHERE BP_ID = #{id,jdbcType=INTEGER};
+
+    DELETE FROM BIO_PICDATA
+    WHERE BP_ID = #{id,jdbcType=INTEGER};
+
+    UPDATE BIO_USERMAST
+    SET PASSWD = '',
+      CARDNO = '',
+      UPD_DATE = GETDATE()
+    WHERE BU_ID = #{id,jdbcType=INTEGER};
+  </delete>
+
+  <delete id="deleteByEnrollId" parameterType="java.lang.Long">
+    DELETE FROM BIO_FACEDATA
+    WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT};
+
+    DELETE FROM BIO_PICDATA
+    WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT};
+
+    UPDATE BIO_USERMAST
+    SET PASSWD = '',
+      CARDNO = '',
+      UPD_DATE = GETDATE()
+    WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT};
+  </delete>
+
+  <insert id="insertEnrollInfo" parameterType="com.timmy.entity.EnrollInfo" >
+    <choose>
+      <when test="backupnum == 10">
+        UPDATE BIO_USERMAST
+        SET PASSWD = LEFT(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, ''), 10),
+          UPD_DATE = GETDATE()
+        WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+          AND ISNULL(ISDELETED, 0) = 0;
+      </when>
+      <when test="backupnum == 11">
+        UPDATE BIO_USERMAST
+        SET CARDNO = LEFT(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, ''), 20),
+          UPD_DATE = GETDATE()
+        WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+          AND ISNULL(ISDELETED, 0) = 0;
+      </when>
+      <when test="backupnum == 50">
+        INSERT INTO BIO_PICDATA (BP_DATE, SLNO, ID, SIZE, IMAGE, UPD_DATE)
+        VALUES (
+          GETDATE(),
+          COALESCE(
+            (SELECT TOP 1 SLNO FROM BIO_USERMAST WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT} ORDER BY BU_ID DESC),
+            (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC)
+          ),
+          CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+          LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+          #{signatures,jdbcType=LONGVARCHAR},
+          GETDATE()
+        );
+      </when>
+      <when test="backupnum &gt;= 20 and backupnum &lt;= 27">
+        INSERT INTO BIO_FACEDATA (
+          BP_DATE, SLNO, ID, FINDEX, FPSIZE, FPVALID, FPTMP, UPD_DATE
+        )
+        VALUES (
+          GETDATE(),
+          COALESCE(
+            (SELECT TOP 1 SLNO FROM BIO_USERMAST WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT} ORDER BY BU_ID DESC),
+            (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC)
+          ),
+          CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+          #{backupnum,jdbcType=INTEGER},
+          LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+          '1',
+          #{signatures,jdbcType=LONGVARCHAR},
+          GETDATE()
+        );
+      </when>
+      <otherwise>
+        UPDATE BIO_FACEDATA
+        SET BP_DATE = BP_DATE
+        WHERE 1 = 0;
+      </otherwise>
+    </choose>
+  </insert>
+
+  <insert id="insert" parameterType="com.timmy.entity.EnrollInfo" >
+    <choose>
+      <when test="backupnum == 10">
+        IF EXISTS (
+          SELECT 1
+          FROM BIO_USERMAST
+          WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+            AND ISNULL(ISDELETED, 0) = 0
+        )
+        BEGIN
+          UPDATE BIO_USERMAST
+          SET PASSWD = LEFT(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, ''), 10),
+            UPD_DATE = GETDATE()
+          WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+            AND ISNULL(ISDELETED, 0) = 0;
+        END
+        ELSE
+        BEGIN
+          INSERT INTO BIO_USERMAST (
+            TR_DATE, SLNO, ID, NAME, PRI, PASSWD, CARDNO, GRPNO, TZ, ISDELETED, DEL_DATE, UPD_DATE, Verify
+          )
+          VALUES (
+            GETDATE(),
+            (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC),
+            CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+            CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+            '0',
+            LEFT(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, ''), 10),
+            '',
+            '1',
+            '0000000100000000',
+            0,
+            NULL,
+            GETDATE(),
+            '-1'
+          );
+        END
+      </when>
+      <when test="backupnum == 11">
+        IF EXISTS (
+          SELECT 1
+          FROM BIO_USERMAST
+          WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+            AND ISNULL(ISDELETED, 0) = 0
+        )
+        BEGIN
+          UPDATE BIO_USERMAST
+          SET CARDNO = LEFT(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, ''), 20),
+            UPD_DATE = GETDATE()
+          WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+            AND ISNULL(ISDELETED, 0) = 0;
+        END
+        ELSE
+        BEGIN
+          INSERT INTO BIO_USERMAST (
+            TR_DATE, SLNO, ID, NAME, PRI, PASSWD, CARDNO, GRPNO, TZ, ISDELETED, DEL_DATE, UPD_DATE, Verify
+          )
+          VALUES (
+            GETDATE(),
+            (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC),
+            CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+            CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+            '0',
+            '',
+            LEFT(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, ''), 20),
+            '1',
+            '0000000100000000',
+            0,
+            NULL,
+            GETDATE(),
+            '-1'
+          );
+        END
+      </when>
+      <when test="backupnum == 50">
+        INSERT INTO BIO_PICDATA (BP_DATE, SLNO, ID, SIZE, IMAGE, UPD_DATE)
+        VALUES (
+          GETDATE(),
+          COALESCE(
+            (SELECT TOP 1 SLNO FROM BIO_USERMAST WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT} ORDER BY BU_ID DESC),
+            (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC)
+          ),
+          CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+          LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+          #{signatures,jdbcType=LONGVARCHAR},
+          GETDATE()
+        );
+      </when>
+      <when test="backupnum &gt;= 20 and backupnum &lt;= 27">
+        INSERT INTO BIO_FACEDATA (
+          BP_DATE, SLNO, ID, FINDEX, FPSIZE, FPVALID, FPTMP, UPD_DATE
+        )
+        VALUES (
+          GETDATE(),
+          COALESCE(
+            (SELECT TOP 1 SLNO FROM BIO_USERMAST WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT} ORDER BY BU_ID DESC),
+            (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC)
+          ),
+          CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+          #{backupnum,jdbcType=INTEGER},
+          LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+          '1',
+          #{signatures,jdbcType=LONGVARCHAR},
+          GETDATE()
+        );
+      </when>
+      <otherwise>
+        UPDATE BIO_FACEDATA
+        SET BP_DATE = BP_DATE
+        WHERE 1 = 0;
+      </otherwise>
+    </choose>
+  </insert>
+
+  <insert id="insertSelective" parameterType="com.timmy.entity.EnrollInfo" >
+    <include refid="InsertOrUpdateByEnrollAndBackup" />
+  </insert>
+
+  <update id="updateByEnrollIdAndBackupNum">
+    <include refid="InsertOrUpdateByEnrollAndBackup" />
+  </update>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.timmy.entity.EnrollInfo" >
+    <choose>
+      <when test="backupnum != null">
+        <include refid="InsertOrUpdateByEnrollAndBackup" />
+      </when>
+      <otherwise>
+        UPDATE BIO_FACEDATA
+        SET FPTMP = #{signatures,jdbcType=LONGVARCHAR},
+          FPSIZE = LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+          BP_DATE = GETDATE(),
+          UPD_DATE = GETDATE()
+        WHERE BP_ID = #{id,jdbcType=INTEGER};
+
+        UPDATE BIO_PICDATA
+        SET IMAGE = #{signatures,jdbcType=LONGVARCHAR},
+          SIZE = LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+          BP_DATE = GETDATE(),
+          UPD_DATE = GETDATE()
+        WHERE BP_ID = #{id,jdbcType=INTEGER};
+      </otherwise>
+    </choose>
+  </update>
+
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.timmy.entity.EnrollInfo" >
+    <choose>
+      <when test="backupnum != null">
+        <include refid="InsertOrUpdateByEnrollAndBackup" />
+      </when>
+      <otherwise>
+        UPDATE BIO_FACEDATA
+        SET FPTMP = #{signatures,jdbcType=LONGVARCHAR},
+          FPSIZE = LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+          BP_DATE = GETDATE(),
+          UPD_DATE = GETDATE()
+        WHERE BP_ID = #{id,jdbcType=INTEGER};
+
+        UPDATE BIO_PICDATA
+        SET IMAGE = #{signatures,jdbcType=LONGVARCHAR},
+          SIZE = LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+          BP_DATE = GETDATE(),
+          UPD_DATE = GETDATE()
+        WHERE BP_ID = #{id,jdbcType=INTEGER};
+      </otherwise>
+    </choose>
+  </update>
+
+  <sql id="InsertOrUpdateByEnrollAndBackup">
+    <choose>
+      <when test="backupnum == 10">
+        UPDATE BIO_USERMAST
+        SET PASSWD = LEFT(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, ''), 10),
+          UPD_DATE = GETDATE()
+        WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+          AND ISNULL(ISDELETED, 0) = 0;
+      </when>
+      <when test="backupnum == 11">
+        UPDATE BIO_USERMAST
+        SET CARDNO = LEFT(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, ''), 20),
+          UPD_DATE = GETDATE()
+        WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+          AND ISNULL(ISDELETED, 0) = 0;
+      </when>
+      <when test="backupnum == 50">
+        IF EXISTS (
+          SELECT 1
+          FROM BIO_PICDATA WITH (UPDLOCK, HOLDLOCK)
+          WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+        )
+        BEGIN
+          UPDATE BIO_PICDATA
+          SET IMAGE = #{signatures,jdbcType=LONGVARCHAR},
+            SIZE = LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+            UPD_DATE = GETDATE(),
+            BP_DATE = GETDATE()
+          WHERE BP_ID = (
+            SELECT TOP 1 BP_ID
+            FROM BIO_PICDATA
+            WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+            ORDER BY BP_ID DESC
+          );
+        END
+        ELSE
+        BEGIN
+          INSERT INTO BIO_PICDATA (BP_DATE, SLNO, ID, SIZE, IMAGE, UPD_DATE)
+          VALUES (
+            GETDATE(),
+            COALESCE(
+              (SELECT TOP 1 SLNO FROM BIO_USERMAST WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT} ORDER BY BU_ID DESC),
+              (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC)
+            ),
+            CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+            LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+            #{signatures,jdbcType=LONGVARCHAR},
+            GETDATE()
+          );
+        END
+      </when>
+      <when test="backupnum &gt;= 20 and backupnum &lt;= 27">
+        IF EXISTS (
+          SELECT 1
+          FROM BIO_FACEDATA WITH (UPDLOCK, HOLDLOCK)
+          WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+            AND CONVERT(INT, FINDEX) = #{backupnum,jdbcType=INTEGER}
+        )
+        BEGIN
+          UPDATE BIO_FACEDATA
+          SET FPTMP = #{signatures,jdbcType=LONGVARCHAR},
+            FPSIZE = LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+            BP_DATE = GETDATE(),
+            UPD_DATE = GETDATE()
+          WHERE BP_ID = (
+            SELECT TOP 1 BP_ID
+            FROM BIO_FACEDATA
+            WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT}
+              AND CONVERT(INT, FINDEX) = #{backupnum,jdbcType=INTEGER}
+            ORDER BY BP_ID DESC
+          );
+        END
+        ELSE
+        BEGIN
+          INSERT INTO BIO_FACEDATA (
+            BP_DATE, SLNO, ID, FINDEX, FPSIZE, FPVALID, FPTMP, UPD_DATE
+          )
+          VALUES (
+            GETDATE(),
+            COALESCE(
+              (SELECT TOP 1 SLNO FROM BIO_USERMAST WHERE CASE WHEN ISNUMERIC(ID)=1 THEN CONVERT(BIGINT, ID) ELSE NULL END = #{enrollId,jdbcType=BIGINT} ORDER BY BU_ID DESC),
+              (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC)
+            ),
+            CONVERT(VARCHAR(20), #{enrollId,jdbcType=BIGINT}),
+            #{backupnum,jdbcType=INTEGER},
+            LEN(ISNULL(#{signatures,jdbcType=LONGVARCHAR}, '')),
+            '1',
+            #{signatures,jdbcType=LONGVARCHAR},
+            GETDATE()
+          );
+        END
+      </when>
+      <otherwise>
+        UPDATE BIO_FACEDATA
+        SET BP_DATE = BP_DATE
+        WHERE 1 = 0;
+      </otherwise>
+    </choose>
+  </sql>
+</mapper>

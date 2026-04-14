@@ -845,7 +845,7 @@
 			<div class="col-md-12">
 				<input type="text" class="form-control" id="userSearchInputTop" placeholder="Search by User ID / Name" style="width: 320px; display:inline-block;">
 				<button class="btn btn-warning" id="syncDbAllDevicesBtn" style="margin-left:8px;" disabled="disabled">SetUserToAllDevice (With Image)</button>
-				<button class="btn btn-default" id="syncStatusAllDevicesBtn" style="margin-left:8px;">Status Sync (Active/Deactive)</button>
+				<button class="btn btn-default" id="syncStatusAllDevicesBtn" style="margin-left:8px;" disabled="disabled" title="Disabled">Status Sync (Active/Deactive)</button>
 				<button class="btn btn-primary" id="updateDataPageBtn" style="margin-left:8px;">updatedata</button>
 				<button class="btn btn-success" id="enableMasterDeviceSyncBtn" style="margin-left:8px;display:none;">Set Selected As Master</button>
 				<button class="btn btn-default" id="disableMasterDeviceSyncBtn" style="margin-left:8px;display:none;">Disable Master Sync</button>
@@ -913,7 +913,7 @@
 				<option value="1">Active (1)</option>
 				<option value="0">Deactive (0)</option>
 			</select>
-			<button class="btn btn-primary" id="setUserEnable_btn">Send Enable/Disable</button>
+			<button class="btn btn-primary" id="setUserEnable_btn" disabled="disabled" title="Disabled">Send Enable/Disable</button>
 		</div>
 		<div class="app-footer">Powered by Houston System | © 2026 Houston System. All rights reserved.</div>
 	</div>
@@ -1864,6 +1864,9 @@
 	      $("#syncDbAllDevicesBtn").click(function(){
 			triggerDbAllDevicesSync(true);
 	      });
+
+	      $("#syncStatusAllDevicesBtn").prop("disabled", true);
+	      $("#setUserEnable_btn").prop("disabled", true);
 
 	      $("#syncStatusAllDevicesBtn").click(function(){
 			$("#syncStatusAllDevicesStatus").text("Syncing status from DB to all devices...");

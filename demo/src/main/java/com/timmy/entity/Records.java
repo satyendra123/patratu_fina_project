@@ -14,6 +14,7 @@ public class Records {
    private int event;
    private String userName;
    private String deviceSerialNum;
+   private String locationName;
    private double temperature;
    private String image;
    private String imageBase64;
@@ -66,6 +67,12 @@ public class Records {
 	}
 	public void setDeviceSerialNum(String deviceSerialNum) {
 		this.deviceSerialNum = deviceSerialNum;
+	}
+	public String getLocationName() {
+		return locationName;
+	}
+	public void setLocationName(String locationName) {
+		this.locationName = locationName;
 	}
 
 	public double getTemperature() {
