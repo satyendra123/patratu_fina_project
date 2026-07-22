@@ -1,0 +1,126 @@
+time=2026-04-06 15:44:16.430, source=senduser, device=AXTI11107184, enrollid=1053257, name=ABHINANDAN, admin=0, backupnum=50, record_size=64156, image_path=
+time=2026-04-06 15:46:26.178, source=senduser, device=AXTI11107184, enrollid=1300410, name=DEEPAK KUMAR, admin=0, backupnum=50, record_size=56960, image_path=
+time=2026-04-06 15:47:30.631, source=senduser, device=AXTI11107184, enrollid=1267928, name=SUNIL, admin=0, backupnum=50, record_size=58352, image_path=
+time=2026-04-06 15:49:03.267, source=senduser, device=AXTI11107184, enrollid=1290184, name=GUDU TIKREY, admin=0, backupnum=50, record_size=49880, image_path=
+time=2026-04-06 15:50:12.204, source=senduser, device=AXTI11107184, enrollid=1302446, name=CHINTU MUNDA, admin=0, backupnum=50, record_size=57508, image_path=
+time=2026-04-06 15:50:59.282, source=senduser, device=AXTI11107184, enrollid=1188202, name=SARVAN, admin=0, backupnum=50, record_size=52920, image_path=
+time=2026-04-06 16:04:04.250, source=senduser, device=AXTI11107184, enrollid=467010, name=SAWAN KUMAR, admin=0, backupnum=50, record_size=61092, image_path=
+time=2026-04-06 16:05:12.382, source=senduser, device=AXTI11107184, enrollid=943681, name=BIJENDRA KUMAR, admin=0, backupnum=50, record_size=69876, image_path=
+time=2026-04-06 16:05:54.717, source=senduser, device=AXTI11107184, enrollid=1204060, name=RAJEEV KUMAR, admin=0, backupnum=50, record_size=70692, image_path=
+time=2026-04-06 16:07:10.974, source=senduser, device=AXTI11107184, enrollid=1285168, name=ARVIND KUMAR, admin=0, backupnum=50, record_size=82784, image_path=
+time=2026-04-06 16:08:29.108, source=senduser, device=AXTI11107184, enrollid=994296, name=BASANT, admin=0, backupnum=50, record_size=62752, image_path=
+time=2026-04-06 16:09:07.288, source=senduser, device=AXTI11107184, enrollid=829621, name=KISHOR, admin=0, backupnum=50, record_size=62764, image_path=
+time=2026-04-06 16:12:48.301, source=senduser, device=AXTI11107184, enrollid=1206836, name=SHEKHAR, admin=0, backupnum=50, record_size=73208, image_path=
+time=2026-04-06 16:21:11.767, source=senduser, device=AXTI11107184, enrollid=557747, name=NAND KISHOR, admin=0, backupnum=50, record_size=51868, image_path=
+time=2026-04-06 16:21:53.946, source=senduser, device=AXTI11107184, enrollid=156630, name=RAM PRASAD, admin=0, backupnum=50, record_size=58480, image_path=
+time=2026-04-06 16:22:53.824, source=senduser, device=AXTI11107184, enrollid=94952, name=SARITA, admin=0, backupnum=50, record_size=74016, image_path=
+time=2026-04-06 16:29:58.066, source=senduser, device=AXTI11107184, enrollid=827975, name=minku , admin=0, backupnum=50, record_size=71008, image_path=
+time=2026-04-06 16:35:22.118, source=senduser, device=AXTI11107184, enrollid=1254245, name=asha kumari, admin=0, backupnum=50, record_size=55196, image_path=
+time=2026-04-06 16:41:55.647, source=senduser, device=AXTI11107184, enrollid=1232893, name=Rajesh, admin=0, backupnum=50, record_size=57996, image_path=
+time=2026-04-06 16:42:14.164, source=senduser, device=AXTI11107184, enrollid=94922, name=HARDAYAL, admin=0, backupnum=50, record_size=60636, image_path=
+time=2026-04-06 16:42:59.476, source=senduser, device=AXTI11107184, enrollid=895372, name=kamlesh yadav, admin=0, backupnum=50, record_size=81444, image_path=
+time=2026-04-06 16:43:34.763, source=senduser, device=AXTI11107184, enrollid=633952, name=bappa ghpsh, admin=0, backupnum=50, record_size=57620, image_path=
+time=2026-04-06 16:44:43.851, source=senduser, device=AXTI11107184, enrollid=262237, name=vijay kumar, admin=0, backupnum=50, record_size=69436, image_path=
+time=2026-04-06 16:45:45.215, source=senduser, device=AXTI11107184, enrollid=1, name=BIKESH TIWARI, admin=0, backupnum=50, record_size=38528, image_path=
+time=2026-04-06 16:46:43.012, source=senduser, device=AXTI11107184, enrollid=1083384, name=BIKESH TIWARI, admin=0, backupnum=50, record_size=50636, image_path=
+time=2026-04-06 16:47:07.616, source=senduser, device=AXTI11107184, enrollid=302663, name=Aniket, admin=0, backupnum=50, record_size=52044, image_path=
+time=2026-04-06 16:47:29.192, source=senduser, device=AXTI11107184, enrollid=1233201, name=VIJAY, admin=0, backupnum=50, record_size=68548, image_path=
+time=2026-04-06 16:47:47.942, source=senduser, device=AXTI11107184, enrollid=1120257, name=RAMESH, admin=0, backupnum=50, record_size=62892, image_path=
+time=2026-04-06 16:50:04.427, source=senduser, device=AXTI11107184, enrollid=1305538, name=ashwini kumar, admin=0, backupnum=50, record_size=63964, image_path=
+time=2026-04-06 16:51:22.634, source=senduser, device=AXTI11107184, enrollid=644686, name=JITU BAURI, admin=0, backupnum=50, record_size=68040, image_path=
+time=2026-04-06 16:51:47.106, source=senduser, device=AXTI11107184, enrollid=1093988, name=JIT, admin=0, backupnum=50, record_size=49260, image_path=
+time=2026-04-06 16:52:16.856, source=senduser, device=AXTI11107184, enrollid=95083, name=TRIBHUWAN, admin=0, backupnum=50, record_size=92312, image_path=
+time=2026-04-06 16:52:33.418, source=senduser, device=AXTI11107184, enrollid=95060, name=PREM KUMAR, admin=0, backupnum=50, record_size=76992, image_path=
+time=2026-04-06 16:52:56.968, source=senduser, device=AXTI11107184, enrollid=1225079, name=PRABIR, admin=0, backupnum=50, record_size=58120, image_path=
+time=2026-04-06 16:53:15.171, source=senduser, device=AXTI11107184, enrollid=94919, name=PRAYAG, admin=0, backupnum=50, record_size=65348, image_path=
+time=2026-04-06 16:54:58.526, source=senduser, device=AXTI11107184, enrollid=1302463, name=SUMIT KUMAR, admin=0, backupnum=50, record_size=63028, image_path=
+time=2026-04-06 16:55:36.308, source=senduser, device=AXTI11107184, enrollid=1302471, name=sarfraj alam, admin=0, backupnum=50, record_size=58996, image_path=
+time=2026-04-06 16:55:58.704, source=senduser, device=AXTI11107184, enrollid=1179916, name=ALFAT, admin=0, backupnum=50, record_size=55892, image_path=
+time=2026-04-06 16:56:44.705, source=senduser, device=AXTI11107184, enrollid=1302734, name=ranjeet kumar, admin=0, backupnum=50, record_size=56344, image_path=
+time=2026-04-06 16:57:05.245, source=senduser, device=AXTI11107184, enrollid=847972, name=UMA SHANKAR, admin=0, backupnum=50, record_size=60580, image_path=
+time=2026-04-06 16:57:30.497, source=senduser, device=AXTI11107184, enrollid=995592, name=ABHISHEK, admin=0, backupnum=50, record_size=59344, image_path=
+time=2026-04-06 17:01:45.202, source=senduser, device=AXTI11107184, enrollid=874109, name=JAYRAM, admin=0, backupnum=50, record_size=57172, image_path=
+time=2026-04-06 17:02:16.199, source=senduser, device=AXTI11107184, enrollid=1104917, name=ARIF, admin=0, backupnum=50, record_size=50864, image_path=
+time=2026-04-06 17:02:38.001, source=senduser, device=AXTI11107184, enrollid=1215002, name=SHAMIM, admin=0, backupnum=50, record_size=61000, image_path=
+time=2026-04-06 17:03:20.089, source=senduser, device=AXTI11107184, enrollid=1276877, name=jayanta kumar, admin=0, backupnum=50, record_size=67476, image_path=
+time=2026-04-06 17:03:42.991, source=senduser, device=AXTI11107184, enrollid=1176891, name=ROSHAN, admin=0, backupnum=50, record_size=64560, image_path=
+time=2026-04-06 17:04:36.754, source=senduser, device=AXTI11107184, enrollid=664859, name=PASHUPATI MANDAL, admin=0, backupnum=50, record_size=61180, image_path=
+time=2026-04-06 17:05:24.218, source=senduser, device=AXTI11107184, enrollid=1264301, name=SAKENDRA , admin=0, backupnum=50, record_size=59428, image_path=
+time=2026-04-06 17:05:47.525, source=senduser, device=AXTI11107184, enrollid=1069483, name=VIKRAM, admin=0, backupnum=50, record_size=57968, image_path=
+time=2026-04-06 17:06:05.998, source=senduser, device=AXTI11107184, enrollid=749094, name=RAMSIRNGAR, admin=0, backupnum=50, record_size=54644, image_path=
+time=2026-04-06 17:06:26.450, source=senduser, device=AXTI11107184, enrollid=1036648, name=ANAND KUMAR, admin=0, backupnum=50, record_size=67140, image_path=
+time=2026-04-06 17:06:53.317, source=senduser, device=AXTI11107184, enrollid=686388, name=RAVINDRA KUMAR, admin=0, backupnum=50, record_size=65252, image_path=
+time=2026-04-06 17:07:12.529, source=senduser, device=AXTI11107184, enrollid=835797, name=SUNNY KUMAR, admin=0, backupnum=50, record_size=62952, image_path=
+time=2026-04-06 17:07:31.190, source=senduser, device=AXTI11107184, enrollid=1005363, name=RAJESH, admin=0, backupnum=50, record_size=68768, image_path=
+time=2026-04-06 17:07:54.810, source=senduser, device=AXTI11107184, enrollid=292853, name=Surendra Prasad, admin=0, backupnum=50, record_size=48308, image_path=
+time=2026-04-06 17:08:38.286, source=senduser, device=AXTI11107184, enrollid=962724, name=bhagawan, admin=0, backupnum=50, record_size=66068, image_path=
+time=2026-04-06 17:09:09.378, source=senduser, device=AXTI11107184, enrollid=458888, name=SUBHAY KUMAR, admin=0, backupnum=50, record_size=53356, image_path=
+time=2026-04-06 17:09:52.259, source=senduser, device=AXTI11107184, enrollid=579316, name=RITESH KUMAR, admin=0, backupnum=50, record_size=62716, image_path=
+time=2026-04-06 17:10:45.141, source=senduser, device=AXTI11107184, enrollid=1301925, name=ajay karmali, admin=0, backupnum=50, record_size=50856, image_path=
+time=2026-04-06 17:11:18.603, source=senduser, device=AXTI11107184, enrollid=633488, name=ASHOK KUMAR, admin=0, backupnum=50, record_size=57828, image_path=
+time=2026-04-06 17:11:37.522, source=senduser, device=AXTI11107184, enrollid=633492, name=MUKESH, admin=0, backupnum=50, record_size=49128, image_path=
+time=2026-04-06 17:11:54.620, source=senduser, device=AXTI11107184, enrollid=749099, name=DILIP, admin=0, backupnum=50, record_size=54348, image_path=
+time=2026-04-06 17:12:20.901, source=senduser, device=AXTI11107184, enrollid=749096, name=SHAHIL, admin=0, backupnum=50, record_size=57616, image_path=
+time=2026-04-06 17:12:45.117, source=senduser, device=AXTI11107184, enrollid=1005359, name=DEEP, admin=0, backupnum=50, record_size=64288, image_path=
+time=2026-04-06 17:13:04.044, source=senduser, device=AXTI11107184, enrollid=966154, name=BHURENDRA, admin=0, backupnum=50, record_size=56864, image_path=
+time=2026-04-06 17:13:24.487, source=senduser, device=AXTI11107184, enrollid=1205954, name=MENJAS, admin=0, backupnum=50, record_size=94964, image_path=
+time=2026-04-06 17:13:43.051, source=senduser, device=AXTI11107184, enrollid=1037597, name=PRMOD, admin=0, backupnum=50, record_size=65396, image_path=
+time=2026-04-06 17:14:06.981, source=senduser, device=AXTI11107184, enrollid=1275029, name=DINESHWAR, admin=0, backupnum=50, record_size=78548, image_path=
+time=2026-04-06 17:14:56.869, source=senduser, device=AXTI11107184, enrollid=653032, name=SAMI, admin=0, backupnum=50, record_size=67888, image_path=
+time=2026-04-06 17:15:34.845, source=senduser, device=AXTI11107184, enrollid=1292619, name=raj kumar, admin=0, backupnum=50, record_size=71512, image_path=
+time=2026-04-06 17:16:05.487, source=senduser, device=AXTI11107184, enrollid=749087, name=MEVA LAL, admin=0, backupnum=50, record_size=57372, image_path=
+time=2026-04-06 17:16:22.141, source=senduser, device=AXTI11107184, enrollid=281579, name=SRINIBASA MAHALA, admin=0, backupnum=50, record_size=62488, image_path=
+time=2026-04-06 17:16:45.780, source=senduser, device=AXTI11107184, enrollid=1178711, name=SIDDHARTH, admin=0, backupnum=50, record_size=57096, image_path=
+time=2026-04-06 17:17:19.319, source=senduser, device=AXTI11107184, enrollid=1202076, name=HIMANSHU, admin=0, backupnum=50, record_size=60672, image_path=
+time=2026-04-06 17:18:33.636, source=senduser, device=AXTI11107184, enrollid=453715, name=CHOTU KUMAR, admin=0, backupnum=50, record_size=71080, image_path=
+time=2026-04-06 17:18:53.798, source=senduser, device=AXTI11107184, enrollid=592294, name=RUP LAL MAHTO, admin=0, backupnum=50, record_size=69512, image_path=
+time=2026-04-06 17:19:17.255, source=senduser, device=AXTI11107184, enrollid=1199352, name=SATYAM, admin=0, backupnum=50, record_size=68020, image_path=
+time=2026-04-06 17:19:34.109, source=senduser, device=AXTI11107184, enrollid=1182353, name=RAHBARE, admin=0, backupnum=50, record_size=56132, image_path=
+time=2026-04-06 17:20:18.960, source=senduser, device=AXTI11107184, enrollid=1133822, name=SUNIL KUMAR, admin=0, backupnum=50, record_size=74352, image_path=
+time=2026-04-06 17:20:52.093, source=senduser, device=AXTI11107184, enrollid=564220, name=MUKESH, admin=0, backupnum=50, record_size=88436, image_path=
+time=2026-04-06 17:21:17.130, source=senduser, device=AXTI11107184, enrollid=1093970, name=HARIHAR, admin=0, backupnum=50, record_size=72044, image_path=
+time=2026-04-06 17:56:10.472, source=senduser, device=AXTI11107184, enrollid=979090, name=UDAY, admin=0, backupnum=50, record_size=66296, image_path=
+time=2026-04-06 17:57:19.828, source=senduser, device=AXTI11107184, enrollid=1235717, name=KARU, admin=0, backupnum=50, record_size=67828, image_path=
+time=2026-04-06 17:58:14.990, source=senduser, device=AXTI11107184, enrollid=1274492, name=RAHUL, admin=0, backupnum=50, record_size=58332, image_path=
+time=2026-04-06 17:58:59.496, source=senduser, device=AXTI11107184, enrollid=618624, name=IJHAR, admin=0, backupnum=50, record_size=81572, image_path=
+time=2026-04-06 17:59:35.714, source=senduser, device=AXTI11107184, enrollid=1073278, name=RAJENDRA, admin=0, backupnum=50, record_size=69192, image_path=
+time=2026-04-06 18:00:42.031, source=senduser, device=AXTI11107184, enrollid=1248557, name=SANI KUMAR, admin=0, backupnum=50, record_size=60572, image_path=
+time=2026-04-06 18:01:25.667, source=senduser, device=AXTI11107184, enrollid=706436, name=MOHAMMAD ALIM, admin=0, backupnum=50, record_size=66100, image_path=
+time=2026-04-06 18:02:15.882, source=senduser, device=AXTI11107184, enrollid=1306868, name=VIRENDRA, admin=0, backupnum=50, record_size=60820, image_path=
+time=2026-04-06 18:03:14.501, source=senduser, device=AXTI11107184, enrollid=1306889, name=RAJESH, admin=0, backupnum=50, record_size=63432, image_path=
+time=2026-04-06 18:04:21.134, source=senduser, device=AXTI11107184, enrollid=1306882, name=RAJINDRA RAM, admin=0, backupnum=50, record_size=74176, image_path=
+time=2026-04-06 18:05:19.152, source=senduser, device=AXTI11107184, enrollid=1306877, name=ANOJ MANJHI, admin=0, backupnum=50, record_size=61912, image_path=
+time=2026-04-06 18:06:03.641, source=senduser, device=AXTI11107184, enrollid=1281263, name=SANDEEP, admin=0, backupnum=50, record_size=83772, image_path=
+time=2026-04-06 18:07:30.417, source=senduser, device=AXTI11107184, enrollid=552413, name=SADEKUL SK, admin=0, backupnum=50, record_size=62036, image_path=
+time=2026-04-06 18:08:27.605, source=senduser, device=AXTI11107184, enrollid=292255, name=ALAM SK, admin=0, backupnum=50, record_size=70776, image_path=
+time=2026-04-06 18:09:01.534, source=senduser, device=AXTI11107184, enrollid=1177482, name=BIKENDRA, admin=0, backupnum=50, record_size=66056, image_path=
+time=2026-04-06 18:09:42.140, source=senduser, device=AXTI11107184, enrollid=348642, name=RAMESH KUMAR, admin=0, backupnum=50, record_size=57904, image_path=
+time=2026-04-06 18:10:32.924, source=senduser, device=AXTI11107184, enrollid=1213843, name=DEVASHISH, admin=0, backupnum=50, record_size=75476, image_path=
+time=2026-04-06 18:12:02.424, source=senduser, device=AXTI11107184, enrollid=2, name=SANTOSH, admin=0, backupnum=50, record_size=66380, image_path=
+time=2026-04-06 18:12:56.684, source=senduser, device=AXTI11107184, enrollid=998780, name=DINESH KUMAR, admin=0, backupnum=50, record_size=69520, image_path=
+time=2026-04-06 18:14:03.739, source=senduser, device=AXTI11107184, enrollid=1305080, name=HAPNA TUDU, admin=0, backupnum=50, record_size=62964, image_path=
+time=2026-04-06 18:15:23.754, source=senduser, device=AXTI11107184, enrollid=1304553, name=CHANDRA TURI, admin=0, backupnum=50, record_size=72312, image_path=
+time=2026-04-06 18:16:20.061, source=senduser, device=AXTI11107184, enrollid=420754, name=DHARMENDRA, admin=0, backupnum=50, record_size=71448, image_path=
+time=2026-04-06 18:16:50.646, source=senduser, device=AXTI11107184, enrollid=689933, name=DHARMENDRA, admin=0, backupnum=50, record_size=72028, image_path=
+time=2026-04-06 18:17:58.423, source=senduser, device=AXTI11107184, enrollid=1184054, name=RAJ KUMAR, admin=0, backupnum=50, record_size=66904, image_path=
+time=2026-04-06 18:18:34.121, source=senduser, device=AXTI11107184, enrollid=1017249, name=SANTOSH, admin=0, backupnum=50, record_size=57620, image_path=
+time=2026-04-06 18:20:33.220, source=senduser, device=AXTI11107184, enrollid=988785, name=SATENDRA KUMAR, admin=0, backupnum=50, record_size=88492, image_path=
+time=2026-04-06 18:24:27.036, source=senduser, device=AXTI11107184, enrollid=916531, name=NIJAMUDIN ANSARI, admin=0, backupnum=50, record_size=68012, image_path=
+time=2026-04-06 18:36:31.222, source=senduser, device=AXTI11107184, enrollid=254766, name=NEPAL, admin=0, backupnum=50, record_size=63328, image_path=
+time=2026-04-06 18:42:10.714, source=senduser, device=AXTI11107184, enrollid=1154490, name=ZAFER, admin=0, backupnum=50, record_size=65492, image_path=
+time=2026-04-06 18:42:37.317, source=senduser, device=AXTI11107184, enrollid=854032, name=MANGAL, admin=0, backupnum=50, record_size=72976, image_path=
+time=2026-04-06 18:46:41.629, source=senduser, device=AXTI11107184, enrollid=273035, name=BACHHAN, admin=0, backupnum=50, record_size=76484, image_path=
+time=2026-04-06 18:50:42.152, source=senduser, device=AXTI11107184, enrollid=1264268, name=AMIT KUMAR, admin=0, backupnum=50, record_size=60572, image_path=
+time=2026-04-06 18:51:32.102, source=senduser, device=AXTI11107184, enrollid=11326, name=MD. IMATIYAJ, admin=0, backupnum=50, record_size=68496, image_path=
+time=2026-04-06 18:52:26.826, source=senduser, device=AXTI11107184, enrollid=1264275, name=hemvir, admin=0, backupnum=50, record_size=70496, image_path=
+time=2026-04-06 18:52:58.069, source=senduser, device=AXTI11107184, enrollid=467024, name=YOGENDRA, admin=0, backupnum=50, record_size=59192, image_path=
+time=2026-04-06 18:53:26.525, source=senduser, device=AXTI11107184, enrollid=667614, name=SANJAY, admin=0, backupnum=50, record_size=58448, image_path=
+time=2026-04-06 18:53:46.295, source=senduser, device=AXTI11107184, enrollid=278006, name=DINESH YADAV, admin=0, backupnum=50, record_size=57936, image_path=
+time=2026-04-06 18:54:10.255, source=senduser, device=AXTI11107184, enrollid=285843, name=Suneet Kumar, admin=0, backupnum=50, record_size=70068, image_path=
+time=2026-04-06 18:54:31.720, source=senduser, device=AXTI11107184, enrollid=667597, name=AMIT, admin=0, backupnum=50, record_size=68492, image_path=
+time=2026-04-06 18:56:48.006, source=senduser, device=AXTI11107184, enrollid=250468, name=PAPPU, admin=0, backupnum=50, record_size=60840, image_path=
+time=2026-04-06 18:57:30.584, source=senduser, device=AXTI11107184, enrollid=728029, name=DILIP, admin=0, backupnum=50, record_size=82852, image_path=
+time=2026-04-06 19:09:04.906, source=senduser, device=AXTI11107184, enrollid=457997, name=ARVIND KUMAR, admin=0, backupnum=50, record_size=68888, image_path=
+time=2026-04-07 06:24:07.440, source=senduser, device=AXTI11107184, enrollid=1178478, name=PANKAJ, admin=0, backupnum=50, record_size=53576, image_path=
+time=2026-04-08 17:54:39.728, source=senduser, device=AXTI11107184, enrollid=959499, name=VISHRAM KUMAR, admin=0, backupnum=50, record_size=85072, image_path=
+time=2026-04-08 18:12:10.469, source=senduser, device=AXTI11107184, enrollid=1152276, name=JITENDRA, admin=0, backupnum=50, record_size=62060, image_path=

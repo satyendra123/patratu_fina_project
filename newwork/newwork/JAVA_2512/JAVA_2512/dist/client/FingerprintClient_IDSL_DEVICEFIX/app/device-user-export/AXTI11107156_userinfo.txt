@@ -1,0 +1,4 @@
+time=2026-04-06 18:39:27.339, source=senduser, device=AXTI11107156, enrollid=898670, name=KUNDAN, admin=0, backupnum=50, record_size=90092, image_path=
+time=2026-04-06 18:40:40.267, source=senduser, device=AXTI11107156, enrollid=1264585, name=OM PRAKASH, admin=0, backupnum=50, record_size=76792, image_path=
+time=2026-04-06 18:42:44.590, source=senduser, device=AXTI11107156, enrollid=1264569, name=MAYANK KUMAR, admin=0, backupnum=50, record_size=73428, image_path=
+time=2026-04-06 18:44:30.196, source=senduser, device=AXTI11107156, enrollid=695765, name=CHANDAN PRASAD, admin=0, backupnum=50, record_size=70988, image_path=

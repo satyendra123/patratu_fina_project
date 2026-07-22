@@ -1,0 +1,1 @@
+time=2026-07-16 17:44:52.074, source=senduser, device=AXTI11107144, enrollid=1, name=sidsingh, admin=0, backupnum=50, record_size=65344, image_path=

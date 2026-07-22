@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.timmy.mapper.PersonMapper" >
+  <resultMap id="BaseResultMap" type="com.timmy.entity.Person" >
+    <id column="id" property="id" jdbcType="BIGINT" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="roll_id" property="rollId" jdbcType="INTEGER" />
+    <result column="status" property="status" jdbcType="INTEGER" />
+  </resultMap>
+
+  <sql id="Base_Column_List" >
+    CASE WHEN ISNUMERIC(ID) = 1 THEN CONVERT(BIGINT, ID) ELSE NULL END AS id,
+    NAME AS name,
+    ISNULL(CASE WHEN ISNUMERIC(PRI) = 1 THEN CONVERT(INT, PRI) ELSE NULL END, 0) AS roll_id,
+    CASE WHEN ISNUMERIC(Verify) = 1 AND CONVERT(INT, Verify) IN (0,1) THEN CONVERT(INT, Verify) ELSE 1 END AS status
+  </sql>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Long" >
+    select top 1
+    <include refid="Base_Column_List" />
+    from BIO_USERMAST
+    where ID = CONVERT(VARCHAR(20), #{id,jdbcType=BIGINT})
+      and ISNULL(ISDELETED, 0) = 0
+    order by BU_ID desc
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long" >
+    update BIO_USERMAST
+    set ISDELETED = 1,
+      DEL_DATE = GETDATE(),
+      UPD_DATE = GETDATE()
+    where ID = CONVERT(VARCHAR(20), #{id,jdbcType=BIGINT})
+      and ISNULL(ISDELETED, 0) = 0
+  </delete>
+
+  <insert id="insert" parameterType="com.timmy.entity.Person" >
+    MERGE BIO_USERMAST AS target
+    USING (SELECT CONVERT(VARCHAR(20), #{id,jdbcType=BIGINT}) AS ID) AS src
+    ON target.ID = src.ID
+    WHEN MATCHED THEN
+      UPDATE SET NAME = #{name,jdbcType=VARCHAR},
+        PRI = CONVERT(VARCHAR(10), ISNULL(#{rollId,jdbcType=INTEGER}, 0)),
+        ISDELETED = 0,
+        DEL_DATE = NULL,
+        UPD_DATE = GETDATE(),
+        TR_DATE = ISNULL(target.TR_DATE, GETDATE())
+    WHEN NOT MATCHED THEN
+      INSERT (TR_DATE, SLNO, ID, NAME, PRI, PASSWD, CARDNO, GRPNO, TZ, ISDELETED, DEL_DATE, UPD_DATE, Verify)
+      VALUES (
+        GETDATE(),
+        (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC),
+        CONVERT(VARCHAR(20), #{id,jdbcType=BIGINT}),
+        #{name,jdbcType=VARCHAR},
+        CONVERT(VARCHAR(10), ISNULL(#{rollId,jdbcType=INTEGER}, 0)),
+        '',
+        '',
+        '1',
+        '0000000100000000',
+        0,
+        NULL,
+        GETDATE(),
+        '-1'
+      );
+  </insert>
+
+  <select id="selectAll" resultMap="BaseResultMap">
+    SELECT
+      CASE WHEN ISNUMERIC(u.ID) = 1 THEN CONVERT(BIGINT, u.ID) ELSE NULL END AS id,
+      u.NAME AS name,
+      ISNULL(CASE WHEN ISNUMERIC(u.PRI) = 1 THEN CONVERT(INT, u.PRI) ELSE NULL END, 0) AS roll_id,
+      CASE WHEN ISNUMERIC(u.Verify) = 1 AND CONVERT(INT, u.Verify) IN (0,1) THEN CONVERT(INT, u.Verify) ELSE 1 END AS status
+    FROM (
+      SELECT
+        BU_ID,
+        ID,
+        NAME,
+        PRI,
+        Verify,
+        ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn
+      FROM BIO_USERMAST
+      WHERE ISNULL(ISDELETED, 0) = 0
+        AND ISNUMERIC(ID) = 1
+    ) u
+    WHERE u.rn = 1
+  </select>
+
+  <select id="selectAllByKeyword" resultMap="BaseResultMap" parameterType="java.lang.String">
+    SELECT
+      CASE WHEN ISNUMERIC(u.ID) = 1 THEN CONVERT(BIGINT, u.ID) ELSE NULL END AS id,
+      u.NAME AS name,
+      ISNULL(CASE WHEN ISNUMERIC(u.PRI) = 1 THEN CONVERT(INT, u.PRI) ELSE NULL END, 0) AS roll_id,
+      CASE WHEN ISNUMERIC(u.Verify) = 1 AND CONVERT(INT, u.Verify) IN (0,1) THEN CONVERT(INT, u.Verify) ELSE 1 END AS status
+    FROM (
+      SELECT
+        BU_ID,
+        ID,
+        NAME,
+        PRI,
+        Verify,
+        ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn
+      FROM BIO_USERMAST
+      WHERE ISNULL(ISDELETED, 0) = 0
+        AND ISNUMERIC(ID) = 1
+    ) u
+    WHERE u.rn = 1
+      AND (
+        CHARINDEX(#{keyword,jdbcType=VARCHAR}, ISNULL(u.ID, '')) > 0
+        OR CHARINDEX(#{keyword,jdbcType=VARCHAR}, ISNULL(u.NAME, '')) > 0
+      )
+  </select>
+
+  <select id="selectDeletedUserIds" resultType="java.lang.Long">
+    SELECT
+      CONVERT(BIGINT, u.ID) AS id
+    FROM (
+      SELECT
+        ID,
+        ISNULL(ISDELETED, 0) AS is_deleted,
+        ROW_NUMBER() OVER (PARTITION BY ID ORDER BY BU_ID DESC) AS rn
+      FROM BIO_USERMAST
+      WHERE ISNUMERIC(ID) = 1
+    ) u
+    WHERE u.rn = 1
+      AND u.is_deleted = 1
+  </select>
+
+  <insert id="insertSelective" parameterType="com.timmy.entity.Person" >
+    insert into BIO_USERMAST (
+      TR_DATE, SLNO, ID, NAME, PRI, PASSWD, CARDNO, GRPNO, TZ, ISDELETED, DEL_DATE, UPD_DATE, Verify
+    )
+    values (
+      GETDATE(),
+      (SELECT TOP 1 SLNO FROM DEVICEINFO WHERE SLNO IS NOT NULL ORDER BY DI_ID DESC),
+      CONVERT(VARCHAR(20), #{id,jdbcType=BIGINT}),
+      #{name,jdbcType=VARCHAR},
+      CONVERT(VARCHAR(10), ISNULL(#{rollId,jdbcType=INTEGER}, 0)),
+      '',
+      '',
+      '1',
+      '0000000100000000',
+      0,
+      NULL,
+      GETDATE(),
+      '-1'
+    )
+  </insert>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.timmy.entity.Person" >
+    update BIO_USERMAST
+    <set >
+      <if test="name != null" >
+        NAME = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="rollId != null" >
+        PRI = CONVERT(VARCHAR(10), #{rollId,jdbcType=INTEGER}),
+      </if>
+      UPD_DATE = GETDATE(),
+      ISDELETED = 0,
+      DEL_DATE = NULL
+    </set>
+    where ID = CONVERT(VARCHAR(20), #{id,jdbcType=BIGINT})
+  </update>
+
+  <update id="updateByPrimaryKey" parameterType="com.timmy.entity.Person" >
+    update BIO_USERMAST
+    set NAME = #{name,jdbcType=VARCHAR},
+      PRI = CONVERT(VARCHAR(10), ISNULL(#{rollId,jdbcType=INTEGER}, 0)),
+      UPD_DATE = GETDATE(),
+      ISDELETED = 0,
+      DEL_DATE = NULL
+    where ID = CONVERT(VARCHAR(20), #{id,jdbcType=BIGINT})
+  </update>
+
+  <update id="updateUserEnableFlag">
+    update BIO_USERMAST
+    set Verify = CONVERT(VARCHAR(5), #{enFlag,jdbcType=INTEGER}),
+      UPD_DATE = GETDATE()
+    where ID = CONVERT(VARCHAR(20), #{id,jdbcType=BIGINT})
+      and ISNULL(ISDELETED, 0) = 0
+  </update>
+</mapper>

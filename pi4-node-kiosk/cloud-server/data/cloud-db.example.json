@@ -1,0 +1,24 @@
+{
+  "devices": {},
+  "users": [
+    {
+      "id": "1001",
+      "name": "Demo Manager",
+      "role": "manager",
+      "status": 1,
+      "updatedAt": "2026-07-16T00:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "1002",
+      "name": "Demo Staff",
+      "role": "user",
+      "status": 1,
+      "updatedAt": "2026-07-16T00:00:00.000Z",
+      "version": 2
+    }
+  ],
+  "deletedUserIds": [],
+  "scans": [],
+  "commands": []
+}

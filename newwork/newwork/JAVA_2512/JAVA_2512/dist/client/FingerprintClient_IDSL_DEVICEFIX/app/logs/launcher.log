@@ -1,0 +1,6 @@
+[2026-04-08 21:56:41] Launcher started. args=[]
+[2026-04-08 21:56:41] WAR sync skipped (already up to date).
+[2026-04-08 21:56:41] Executing script: D:\housys\newwork\JAVA_2512\JAVA_2512\dist\client\FingerprintClient_IDSL_DEVICEFIX\app\start-tomcat.cmd
+[2026-04-08 21:56:57] Script completed: start-tomcat.cmd exitCode=0
+[2026-04-08 21:56:57] Start script exit code: 0
+[2026-04-08 21:57:42] Startup failed: java.io.IOException: Tomcat did not open shutdown port 18005. Check logs\start-tomcat.log and tomcat\logs\catalina*.log

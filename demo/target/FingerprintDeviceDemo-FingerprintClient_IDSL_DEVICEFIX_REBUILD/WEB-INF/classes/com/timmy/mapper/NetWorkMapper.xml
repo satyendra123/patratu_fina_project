@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.timmy.mapper.NetWorkMapper" >
+
+  <select id="selectNetworkIdBySlno" resultType="java.lang.Integer">
+    SELECT TOP 1 CONVERT(INT, ID)
+    FROM NetWork
+    WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{slno,jdbcType=VARCHAR}))
+    ORDER BY ID DESC
+  </select>
+
+  <insert id="insertNetworkPlaceholder" parameterType="java.lang.String">
+    INSERT INTO NetWork (SLNO, ONLINE, ISDELETED, DeviceName, Status_Upd_on)
+    SELECT
+      LTRIM(RTRIM(#{slno,jdbcType=VARCHAR})),
+      CONVERT(BIT, 1),
+      CONVERT(BIT, 0),
+      LEFT(LTRIM(RTRIM(#{slno,jdbcType=VARCHAR})), 20),
+      GETDATE()
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM NetWork
+      WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{slno,jdbcType=VARCHAR}))
+    )
+  </insert>
+
+  <select id="selectGateBySlno" resultType="java.lang.String">
+    SELECT TOP 1 LTRIM(RTRIM(GATE))
+    FROM NetWork
+    WHERE LTRIM(RTRIM(SLNO)) = LTRIM(RTRIM(#{slno,jdbcType=VARCHAR}))
+    ORDER BY ID DESC
+  </select>
+
+  <update id="upsertGateBySlno">
+    DECLARE @normalizedSlno VARCHAR(255) = LTRIM(RTRIM(#{slno,jdbcType=VARCHAR}));
+    DECLARE @normalizedGate VARCHAR(10) = NULLIF(UPPER(LTRIM(RTRIM(#{gate,jdbcType=VARCHAR}))), '');
+
+    IF @normalizedSlno IS NULL
+    BEGIN
+      RETURN;
+    END
+
+    IF EXISTS (
+      SELECT 1
+      FROM NetWork
+      WHERE LTRIM(RTRIM(SLNO)) = @normalizedSlno
+    )
+    BEGIN
+      UPDATE NetWork
+      SET GATE = @normalizedGate
+      WHERE ID = (
+        SELECT TOP 1 ID
+        FROM NetWork
+        WHERE LTRIM(RTRIM(SLNO)) = @normalizedSlno
+        ORDER BY ID DESC
+      );
+    END
+    ELSE
+    BEGIN
+      INSERT INTO NetWork (SLNO, GATE, ONLINE, ISDELETED, DeviceName, Status_Upd_on)
+      VALUES (
+        @normalizedSlno,
+        @normalizedGate,
+        CONVERT(BIT, 1),
+        CONVERT(BIT, 0),
+        LEFT(@normalizedSlno, 20),
+        GETDATE()
+      );
+    END
+  </update>
+
+</mapper>

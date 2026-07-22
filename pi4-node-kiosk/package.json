@@ -1,0 +1,18 @@
+{
+  "name": "pi4-node-kiosk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node cloud server for Raspberry Pi 4 PyQt HMI access devices.",
+  "main": "cloud-server/app.js",
+  "scripts": {
+    "cloud": "node cloud-server/app.js",
+    "check": "node --check cloud-server/app.js && node --check cloud-server/utils/websocket.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mysql2": "^3.11.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

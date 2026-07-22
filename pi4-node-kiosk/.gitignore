@@ -1,0 +1,10 @@
+node_modules/
+package-lock.json
+
+cloud-server/data/cloud-db.json
+
+pi4-hmi/config.json
+pi4-hmi/data/*.sqlite3
+pi4-hmi/data/*.sqlite3-*
+__pycache__/
+*.pyc

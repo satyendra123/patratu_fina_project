@@ -1,0 +1,5 @@
+2026-03-02 12:04:52 | ERROR | finger_device | Failed to connect ATTLOG DBMS. Set ATTLOG_ODBC_CONNECT or ATTLOG_DB_* environment variables.
+Traceback (most recent call last):
+  File "d:\JAVA_2512\JAVA_2512\face-rec\attlog_dbms.py", line 185, in _get_connection
+    _conn = pyodbc.connect(conn_str, timeout=timeout, autocommit=False)
+pyodbc.OperationalError: ('08001', '[08001] [Microsoft][ODBC Driver 18 for SQL Server]Named Pipes Provider: Could not open a connection to SQL Server [53].  (53) (SQLDriverConnect); [08001] [Microsoft][ODBC Driver 18 for SQL Server]Login timeout expired (0); [08001] [Microsoft][ODBC Driver 18 for SQL Server]A network-related or instance-specific error has occurred while establishing a connection to localhost:1433. Server is not found or not accessible. Check if instance name is correct and if SQL Server is configured to allow remote connections. For more information see SQL Server Books Online. (53)')
